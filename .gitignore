@@ -1,0 +1,31 @@
+
+# Local credentials and machine-specific files
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+application-local.yml
+application-local.yaml
+application-local.properties
+.DS_Store
+.gradle/
+build/
+target/
+.idea/
+*.iml
+application.properties
+application.yml
+application.yaml
+application-*.properties
+application-*.yml
+application-*.yaml
+!application*.example.properties
+!application*.example.yml
+!application*.example.yaml
+
+# This file contains public defaults only; credentials belong in environment variables.
+!src/main/resources/application.properties
