@@ -1,0 +1,42 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  application:
+    name: preen-backend
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.ssl.checkserveridentity: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+app:
+  security:
+    allowed-origins: ${FRONTEND_ORIGIN:http://localhost:5173}
+  auth:
+    code-expiration: 5m
+    resend-interval: 60s
+    max-attempts: 5
+    signup-token-expiration: 15m
+    hash-secret: ${AUTH_HASH_SECRET}
+    mail-from: ${MAIL_USERNAME}
+    crypto:
+      encryption-key: ${EMAIL_ENCRYPTION_KEY}
