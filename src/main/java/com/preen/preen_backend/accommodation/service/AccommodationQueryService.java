@@ -28,6 +28,7 @@ import com.preen.preen_backend.accommodation.repository.AccommodationImageReposi
 import com.preen.preen_backend.accommodation.repository.AccommodationRepository;
 import com.preen.preen_backend.accommodation.repository.CategoryRepository;
 import com.preen.preen_backend.accommodation.repository.RegionRepository;
+import com.preen.preen_backend.accommodation.repository.RoomPriceRepository;
 import com.preen.preen_backend.common.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class AccommodationQueryService {
 	private final RegionRepository regionRepository;
 	private final AccommodationRepository accommodationRepository;
 	private final AccommodationImageRepository accommodationImageRepository;
+	private final RoomPriceRepository roomPriceRepository;
 
 	public List<CategoryResponse> getCategories() {
 		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
@@ -134,6 +136,10 @@ public class AccommodationQueryService {
 				.findAllByAccommodationIdInOrderBySortOrderAsc(ids).stream()
 				.collect(Collectors.toMap(AccommodationImage::getAccommodationId, AccommodationImage::getImageUrl,
 						(first, later) -> first));
+		// [kny] 카드의 "최저 1박 요금" = 판매 중(ACTIVE) 객실의 기본가 중 가장 낮은 값 (STAY-001)
+		Map<Long, Integer> minPrices = roomPriceRepository.findMinNightlyPrices(ids).stream()
+				.collect(Collectors.toMap(RoomPriceRepository.MinPrice::getAccommodationId,
+						price -> price.getMinNightlyPrice().intValue()));
 
 		Function<Accommodation, AccommodationSummaryResponse> mapper = a -> new AccommodationSummaryResponse(
 				a.getId(),
@@ -144,7 +150,7 @@ public class AccommodationQueryService {
 				a.getCategoryId(),
 				categoryNames.get(a.getCategoryId()),
 				thumbnails.get(a.getId()),
-				null); // 객실(요금) 정보가 domain2에 없어서 아직 null입니다.
+				minPrices.get(a.getId())); // 판매 중인 객실이 없으면 null
 		return accommodations.stream().map(mapper).toList();
 	}
 
