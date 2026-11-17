@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.preen.preen_backend.accommodation.dto.AccommodationSummaryResponse;
+import com.preen.preen_backend.accommodation.dto.CategoryAccommodationsResponse;
 import com.preen.preen_backend.accommodation.service.AccommodationQueryService;
 import com.preen.preen_backend.common.response.ApiResponse;
 import com.preen.preen_backend.common.response.PageResponse;
@@ -32,6 +33,16 @@ public class AccommodationController {
 			@RequestParam(name = "page", defaultValue = "0") int page,
 			@RequestParam(name = "size", defaultValue = "20") int size) {
 		return ApiResponse.ok(accommodationQueryService.getAccommodations(categoryId, regionId, page, size));
+	}
+
+	/**
+	 * GET /api/accommodations/by-category?size=6
+	 * "전체 숙소" 화면용. 카테고리마다 숙소를 size개(기본 6, 최대 50)씩 묶어서 한 번에 돌려줍니다.
+	 */
+	@GetMapping("/by-category")
+	public ApiResponse<List<CategoryAccommodationsResponse>> getAccommodationsByCategory(
+			@RequestParam(name = "size", defaultValue = "6") int size) {
+		return ApiResponse.ok(accommodationQueryService.getAccommodationsByCategory(size));
 	}
 
 	/**

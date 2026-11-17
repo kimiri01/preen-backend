@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.preen.preen_backend.accommodation.domain.Accommodation;
 import com.preen.preen_backend.accommodation.domain.ListingStatus;
 import com.preen.preen_backend.accommodation.dto.AccommodationSummaryResponse;
+import com.preen.preen_backend.accommodation.dto.CategoryAccommodationsResponse;
 import com.preen.preen_backend.accommodation.dto.CategoryResponse;
 import com.preen.preen_backend.accommodation.dto.RegionResponse;
 import com.preen.preen_backend.accommodation.repository.AccommodationRepository;
@@ -66,6 +67,27 @@ public class AccommodationQueryService {
 				pageable);
 
 		return PageResponse.of(result, AccommodationSummaryResponse::from);
+	}
+
+	/**
+	 * "전체 숙소" 화면용. 카테고리마다 공개 숙소를 최근 등록순으로 size개씩 묶어서 돌려줍니다.
+	 * - 카테고리는 화면 표시 순서(sort_order)대로 정렬합니다.
+	 * - 숙소가 없는 카테고리도 빈 목록으로 포함합니다. (화면에서 숨길지 프론트가 결정)
+	 * - 프론트는 한 번만 요청하고, 서버 안에서 카테고리마다 DB를 조회합니다.
+	 */
+	public List<CategoryAccommodationsResponse> getAccommodationsByCategory(int size) {
+		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+		Pageable firstPage = PageRequest.of(0, safeSize,
+				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+
+		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
+				.map(category -> CategoryAccommodationsResponse.of(category,
+						accommodationRepository
+								.findByListingStatusAndCategory_Id(ListingStatus.LISTED, category.getId(), firstPage)
+								.stream()
+								.map(AccommodationSummaryResponse::from)
+								.toList()))
+				.toList();
 	}
 
 	/**
