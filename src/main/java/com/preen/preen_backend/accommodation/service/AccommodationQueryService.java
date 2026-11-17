@@ -1,19 +1,30 @@
 package com.preen.preen_backend.accommodation.service;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.preen.preen_backend.accommodation.domain.Accommodation;
-import com.preen.preen_backend.accommodation.domain.ListingStatus;
+import com.preen.preen_backend.accommodation.domain.Accommodation.ListingStatus;
+import com.preen.preen_backend.accommodation.domain.AccommodationCategory;
+import com.preen.preen_backend.accommodation.domain.AccommodationImage;
+import com.preen.preen_backend.accommodation.domain.Region;
 import com.preen.preen_backend.accommodation.dto.AccommodationSummaryResponse;
 import com.preen.preen_backend.accommodation.dto.CategoryResponse;
 import com.preen.preen_backend.accommodation.dto.RegionResponse;
+import com.preen.preen_backend.accommodation.repository.AccommodationImageRepository;
 import com.preen.preen_backend.accommodation.repository.AccommodationRepository;
 import com.preen.preen_backend.accommodation.repository.CategoryRepository;
 import com.preen.preen_backend.accommodation.repository.RegionRepository;
@@ -28,10 +39,14 @@ import lombok.RequiredArgsConstructor;
 public class AccommodationQueryService {
 
 	private static final int MAX_PAGE_SIZE = 50;
+	private static final int MAX_KEYWORD_LENGTH = 100;
+	/** 시·도 단계 지역 (domain2 Region.level) */
+	private static final int LEVEL_PROVINCE = 1;
 
 	private final CategoryRepository categoryRepository;
 	private final RegionRepository regionRepository;
 	private final AccommodationRepository accommodationRepository;
+	private final AccommodationImageRepository accommodationImageRepository;
 
 	public List<CategoryResponse> getCategories() {
 		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
@@ -40,27 +55,97 @@ public class AccommodationQueryService {
 	}
 
 	public List<RegionResponse> getRegions() {
-		return regionRepository.findAllByOrderBySortOrderAsc().stream()
+		return regionRepository.findAllByLevelOrderByIdAsc(LEVEL_PROVINCE).stream()
 				.map(RegionResponse::from)
 				.toList();
 	}
 
 	/**
 	 * 공개(LISTED) 숙소를 최근 등록순으로 조회합니다.
-	 * categoryId, regionId는 없으면(null) 해당 조건을 적용하지 않습니다.
+	 * keyword, categoryId, regionId, guestCount는 없으면(null) 해당 조건을 적용하지 않습니다.
+	 * keyword는 숙소명에 그 글자가 들어 있는 숙소만 찾습니다. (대소문자 구분 없음, 공백뿐이면 조건 없음)
+	 * guestCount는 최대 인원이 그 이상인 판매 중 객실이 있는 숙소만 찾습니다.
 	 */
-	public PageResponse<AccommodationSummaryResponse> getAccommodations(Long categoryId, Long regionId, int page,
-			int size) {
+	public PageResponse<AccommodationSummaryResponse> getAccommodations(String keyword, Long categoryId,
+			Long regionId, Integer guestCount, LocalDate checkIn, LocalDate checkOut, int page, int size) {
+		if (keyword != null && keyword.length() > MAX_KEYWORD_LENGTH) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"검색어는 " + MAX_KEYWORD_LENGTH + "자 이하여야 합니다.");
+		}
+		if (guestCount != null && guestCount < 1) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인원은 1명 이상이어야 합니다.");
+		}
 		// 잘못된 값이 와도 에러 대신 허용 범위로 보정합니다. (page 0 이상, size 1~50)
 		int safePage = Math.max(page, 0);
 		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 		Pageable pageable = PageRequest.of(safePage, safeSize,
 				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
 
-		Page<Accommodation> result = accommodationRepository.search(ListingStatus.LISTED, categoryId, regionId,
-				pageable);
+		boolean dateFilter = checkIn != null || checkOut != null;
+		if (dateFilter) {
+			if (checkIn == null || checkOut == null) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "checkIn과 checkOut은 함께 보내야 합니다.");
+			}
+			if (!checkOut.isAfter(checkIn)) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "checkOut은 checkIn보다 뒤여야 합니다.");
+			}
+		}
+		long nights = dateFilter ? ChronoUnit.DAYS.between(checkIn, checkOut) : 0;
+		LocalDate from = dateFilter ? checkIn : LocalDate.EPOCH;
+		LocalDate to = dateFilter ? checkOut : LocalDate.EPOCH;
 
-		return PageResponse.of(result, AccommodationSummaryResponse::from);
+		Page<Accommodation> result = accommodationRepository.search(ListingStatus.LISTED, toNamePattern(keyword),
+				categoryId, regionId, guestCount, dateFilter, from, to, nights, pageable);
+		return new PageResponse<>(
+				toSummaries(result.getContent()),
+				result.getNumber(),
+				result.getSize(),
+				result.getTotalElements(),
+				result.getTotalPages(),
+				result.hasNext());
+	}
+
+	/**
+	 * 검색어를 "포함" LIKE 패턴으로 바꿉니다. 비어 있으면 null(조건 없음)입니다.
+	 * 검색어 안의 %, _는 글자 그대로 찾도록 '!'로 이스케이프합니다.
+	 */
+	private static String toNamePattern(String keyword) {
+		if (keyword == null || keyword.isBlank()) {
+			return null;
+		}
+		String escaped = keyword.trim().replace("!", "!!").replace("%", "!%").replace("_", "!_");
+		return "%" + escaped + "%";
+	}
+
+	/**
+	 * 숙소 목록에 카테고리명·지역명·대표 사진을 붙입니다.
+	 * 연관관계가 없으므로 id 묶음으로 한 번씩만 조회합니다. (N+1 방지)
+	 */
+	List<AccommodationSummaryResponse> toSummaries(List<Accommodation> accommodations) {
+		if (accommodations.isEmpty()) {
+			return List.of();
+		}
+		Map<Long, String> categoryNames = categoryRepository.findAll().stream()
+				.collect(Collectors.toMap(AccommodationCategory::getId, AccommodationCategory::getName));
+		Map<Long, String> regionNames = regionRepository.findAll().stream()
+				.collect(Collectors.toMap(Region::getId, Region::getName));
+		List<Long> ids = accommodations.stream().map(Accommodation::getId).toList();
+		Map<Long, String> thumbnails = accommodationImageRepository
+				.findAllByAccommodationIdInOrderBySortOrderAsc(ids).stream()
+				.collect(Collectors.toMap(AccommodationImage::getAccommodationId, AccommodationImage::getImageUrl,
+						(first, later) -> first));
+
+		Function<Accommodation, AccommodationSummaryResponse> mapper = a -> new AccommodationSummaryResponse(
+				a.getId(),
+				a.getName(),
+				a.getAddress(),
+				a.getRegionId(),
+				regionNames.get(a.getRegionId()),
+				a.getCategoryId(),
+				categoryNames.get(a.getCategoryId()),
+				thumbnails.get(a.getId()),
+				null); // 객실(요금) 정보가 domain2에 없어서 아직 null입니다.
+		return accommodations.stream().map(mapper).toList();
 	}
 
 }
