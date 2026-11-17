@@ -1,5 +1,8 @@
 package com.preen.preen_backend.accommodation.repository;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -32,5 +35,12 @@ public interface AccommodationRepository extends JpaRepository<Accommodation, Lo
 			@Param("categoryId") Long categoryId,
 			@Param("regionId") Long regionId,
 			Pageable pageable);
+
+	/**
+	 * ID 목록에 해당하는 숙소를 한 번에 조회합니다. ("최근 본 숙소"에서 사용)
+	 * 공개(LISTED) 상태인 숙소만 돌려주며, 결과 순서는 보장되지 않습니다.
+	 */
+	@EntityGraph(attributePaths = { "category", "region" })
+	List<Accommodation> findByIdInAndListingStatus(Collection<Long> ids, ListingStatus listingStatus);
 
 }

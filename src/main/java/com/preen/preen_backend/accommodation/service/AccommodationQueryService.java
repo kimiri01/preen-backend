@@ -1,6 +1,10 @@
 package com.preen.preen_backend.accommodation.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class AccommodationQueryService {
 
 	private static final int MAX_PAGE_SIZE = 50;
+	private static final int MAX_RECENT_SIZE = 20;
 
 	private final CategoryRepository categoryRepository;
 	private final RegionRepository regionRepository;
@@ -61,6 +66,34 @@ public class AccommodationQueryService {
 				pageable);
 
 		return PageResponse.of(result, AccommodationSummaryResponse::from);
+	}
+
+	/**
+	 * "최근 본 숙소" 조회. 프론트가 브라우저에 저장해 둔 숙소 ID 목록을 받아 숙소 정보를 돌려줍니다.
+	 * - 받은 ID 순서(최근에 본 순서) 그대로 반환합니다.
+	 * - 중복 ID는 한 번만, 최대 20개까지만 처리합니다.
+	 * - 삭제됐거나 공개(LISTED)가 아닌 숙소는 결과에서 빠집니다.
+	 */
+	public List<AccommodationSummaryResponse> getRecentlyViewed(List<Long> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return List.of();
+		}
+		List<Long> requestedIds = ids.stream()
+				.filter(Objects::nonNull)
+				.distinct()
+				.limit(MAX_RECENT_SIZE)
+				.toList();
+
+		// DB는 순서를 보장하지 않으므로, ID로 찾을 수 있게 Map에 담은 뒤 요청 순서대로 다시 꺼냅니다.
+		Map<Long, Accommodation> foundById = accommodationRepository
+				.findByIdInAndListingStatus(requestedIds, ListingStatus.LISTED).stream()
+				.collect(Collectors.toMap(Accommodation::getId, Function.identity()));
+
+		return requestedIds.stream()
+				.map(foundById::get)
+				.filter(Objects::nonNull)
+				.map(AccommodationSummaryResponse::from)
+				.toList();
 	}
 
 }
