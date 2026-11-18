@@ -2,8 +2,11 @@ package com.preen.preen_backend.common.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import com.preen.preen_backend.common.auth.temporary.CurrentUserArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import java.util.List;
 
 /**
  * CORS 설정입니다.
@@ -27,6 +30,11 @@ public class WebConfig implements WebMvcConfigurer {
 				.allowedHeaders("*")
 				// 프론트 공통 http 모듈이 credentials: 'include'로 요청하므로 true여야 합니다.
 				.allowCredentials(true);
+	}
+
+	@Override
+	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+		resolvers.add(new CurrentUserArgumentResolver());
 	}
 
 }
