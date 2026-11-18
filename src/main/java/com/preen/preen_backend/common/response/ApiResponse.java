@@ -1,13 +1,22 @@
 package com.preen.preen_backend.common.response;
 
+import com.preen.preen_backend.common.exception.ErrorCode;
+
 /**
  * 모든 API가 공통으로 사용하는 응답 형식입니다. (기능명세서 COMMON-004)
- * 예: { "success": true, "code": "OK", "message": "요청이 성공했습니다.", "data": ... }
+ * 성공 예: { "success": true,  "code": "OK", "message": "요청이 성공했습니다.", "data": ... }
+ * 실패 예: { "success": false, "code": "INVALID_INPUT", "message": "...", "data": null }
  */
 public record ApiResponse<T>(boolean success, String code, String message, T data) {
 
+	/** 성공 데이터를 공통 응답에 담습니다. */
 	public static <T> ApiResponse<T> ok(T data) {
 		return new ApiResponse<>(true, "OK", "요청이 성공했습니다.", data);
+	}
+
+	/** 오류 코드와 메시지를 공통 응답에 담습니다. (GlobalExceptionHandler에서 사용) */
+	public static ApiResponse<Void> failure(ErrorCode errorCode) {
+		return new ApiResponse<>(false, errorCode.name(), errorCode.message(), null);
 	}
 
 }
