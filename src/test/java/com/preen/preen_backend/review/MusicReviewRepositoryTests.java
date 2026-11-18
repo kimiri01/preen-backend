@@ -33,6 +33,10 @@ class MusicReviewRepositoryTests {
     @Test void filtersPublicCompletedReviewsAndSortsWithinThisStay() {
         assertEquals(2,repository.count(-9101,0));
         assertEquals(1,repository.count(-9101,5));
+        assertEquals(0,repository.count(-9101,2));
+        assertTrue(repository.list(-9101,2,"latest",0).isEmpty());
+        assertTrue(repository.list(-9101,5,"latest",0).stream().allMatch(review -> review.rating()==5));
+        assertEquals(3,repository.list(-9101,0,"rating-asc",0).getFirst().rating());
         assertEquals(0,repository.count(-999999,0));
         assertEquals(3,repository.list(-9101,0,"latest",0).getFirst().rating());
         assertEquals(5,repository.list(-9101,0,"rating-desc",0).getFirst().rating());
