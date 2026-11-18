@@ -1,5 +1,6 @@
 package com.preen.preen_backend.common.security;
 
+import jakarta.servlet.DispatcherType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -47,6 +48,8 @@ public class SecurityConfig {
                 .csrf(config -> config.ignoringRequestMatchers(publicPostPaths))
                 .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(config -> config
+                        // 400·404 같은 에러 응답을 만들 때 내부적으로 /error로 넘어가는데, 이것까지 막으면 전부 401이 됩니다.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, publicGetPaths).permitAll()
                         .requestMatchers(HttpMethod.POST, publicPostPaths).permitAll()

@@ -19,4 +19,9 @@ public record ApiResponse<T>(boolean success, String code, String message, T dat
 		return new ApiResponse<>(false, errorCode.name(), errorCode.message(), null);
 	}
 
+	/** ErrorCode 없이 코드와 메시지를 직접 담습니다. (ResponseStatusException 변환용) */
+	public static ApiResponse<Void> failure(String code, String message) {
+		return new ApiResponse<>(false, code, message, null);
+	}
+
 }
