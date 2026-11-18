@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-@Repository
+@Repository("moonRoomQueryRepository")
 public class RoomRepository {
     private final JdbcTemplate jdbc;
     public RoomRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }

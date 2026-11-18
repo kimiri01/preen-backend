@@ -16,7 +16,7 @@ public class MusicReviewController {
     private final RoomRepository stays;
     public MusicReviewController(MusicReviewRepository reviews, RoomRepository stays) { this.reviews=reviews; this.stays=stays; }
     public record ReviewList(String accommodationId, long total, long filteredTotal, int page, int pageSize, List<MusicReviewRepository.Review> reviews) {}
-    @GetMapping("/{accommodationId}/music-reviews")
+    @GetMapping({"/{accommodationId}/music-reviews", "/{accommodationId}/reviews"})
     @Transactional(readOnly=true)
     public ApiResponse<ReviewList> list(@PathVariable String accommodationId,
         @RequestParam(defaultValue="0") int rating, @RequestParam(defaultValue="latest") String sort,
