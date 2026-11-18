@@ -4,7 +4,7 @@
 - 기준: origin/test/accmmo-serch-test (668fba7). develop에는 아직 검색 통합 코드가 없어 해당 검증 브랜치를 기준으로 분리했습니다.
 - 작업 브랜치: feature/room-list-integration_Moon. 기존 feature/room-list-spec_Moon은 보존합니다.
 - 팀 JPA 테이블, 공통 ApiResponse, 기존 Flyway 기록을 유지합니다. 기존 마이그레이션은 수정하지 않습니다.
-- V102__room_specs_and_audio.sql은 객실 면적·침대·편의시설·오디오 확장 테이블만 추가합니다. 기존 V100/V101 이후 적용되도록 V102로 지정했습니다.
+- V20261118.1500__room_specs_and_audio.sql은 객실 면적·침대·편의시설·오디오 확장 테이블만 추가합니다. 팀 인증 V102 및 검색 V103과 겹치지 않도록 날짜·시분 번호를 사용합니다.
 
 ## API
 모든 응답은 팀 ApiResponse의 data에 담깁니다.
