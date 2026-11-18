@@ -4,6 +4,8 @@ import jakarta.servlet.DispatcherType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import com.preen.preen_backend.common.auth.temporary.TempAuthFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
@@ -27,7 +30,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-            List<SecurityRuleContributor> contributors, SecurityProperties properties) throws Exception {
+            List<SecurityRuleContributor> contributors, SecurityProperties properties,
+            @Value("${app.temp-auth.enabled:false}") boolean tempAuthEnabled) throws Exception {
         // 각 기능에서 등록한 공개 API 경로를 모읍니다.
         String[] publicPostPaths = collect(contributors, SecurityRuleContributor::publicPostPaths);
         String[] publicGetPaths = collect(contributors, SecurityRuleContributor::publicGetPaths);
@@ -42,10 +46,22 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", cors);
 
+        // yunjeong - 11/18 추가 [개발용] 임시 인증이 켜져 있으면 임시 사용자로 인증하는 필터를 등록합니다.
+        if (tempAuthEnabled) {
+            http.addFilterBefore(new TempAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+        }
+
         // 서버 세션을 만들지 않고, 공개 경로 이외에는 인증을 요구합니다.
         return http
                 .cors(config -> config.configurationSource(source))
-                .csrf(config -> config.ignoringRequestMatchers(publicPostPaths))
+                .csrf(config -> {
+                    // yunjeong - 11/18 추가 [개발용] 임시 인증 모드에서는 CSRF를 끕니다(POST 테스트용).
+                    if (tempAuthEnabled) {
+                        config.disable();
+                    } else {
+                        config.ignoringRequestMatchers(publicPostPaths);
+                    }
+                })
                 .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(config -> config
                         // 400·404 같은 에러 응답을 만들 때 내부적으로 /error로 넘어가는데, 이것까지 막으면 전부 401이 됩니다.
