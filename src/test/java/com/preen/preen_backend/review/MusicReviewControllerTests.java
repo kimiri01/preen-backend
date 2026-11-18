@@ -24,7 +24,7 @@ class MusicReviewControllerTests {
         verifyNoInteractions(reviews);
     }
     @Test void returnsRequestedRatingAndPaginationWithoutUserData() throws Exception {
-        when(stays.findListedStay(7)).thenReturn(Optional.of(new RoomRepository.Stay(7,"숙소",null,"주소","15:00","11:00")));
+        when(stays.findListedStay(7)).thenReturn(Optional.of(new RoomRepository.Stay(7,"숙소",null,"주소","15:00","11:00","HOTEL","호텔","SEOUL","서울")));
         when(reviews.count(7,0)).thenReturn(4L); when(reviews.count(7,5)).thenReturn(1L);
         when(reviews.list(7,5,"rating-desc",0)).thenReturn(List.of(new MusicReviewRepository.Review("8","스위트","11dFghVXANMlKmJXsNCbNl",5,"2026-11-16T15:00:00","김**","2026-11-15","테스트 곡","아티스트","앨범")));
         mvc.perform(get("/api/accommodations/7/music-reviews?rating=5&sort=rating-desc"))

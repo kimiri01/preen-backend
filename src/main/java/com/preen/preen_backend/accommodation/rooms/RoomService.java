@@ -18,7 +18,7 @@ public class RoomService {
     public record RoomView(String id, String name, int capacity, int maxCapacity,
                            String nightlyPrice, String extraPersonFee, List<ImageView> images,
                            String roomType, String areaSqm, List<BedView> beds, List<FacilityView> facilities, AudioView audio) {}
-    public record RoomList(String accommodationId, String accommodationName, String description, String address, String checkInTime, String checkOutTime, List<RoomView> rooms, List<ImageView> images) {}
+    public record RoomList(String accommodationId, String accommodationName, String description, String address, String checkInTime, String checkOutTime, List<RoomView> rooms, List<ImageView> images, String categoryCode, String categoryName, String regionCode, String regionName) {}
 
     @Transactional(readOnly = true)
     public RoomList list(long stayId) {
@@ -39,6 +39,6 @@ public class RoomService {
                 room.roomType(), room.areaSqm() == null ? null : room.areaSqm().toPlainString(),
                 beds.getOrDefault(room.id(), List.of()).stream().map(bed -> new BedView(bed.bedType(),bed.count())).toList(),
                 facilities.getOrDefault(room.id(), List.of()).stream().map(facility -> new FacilityView(facility.code(),facility.name())).toList(), audio.get(room.id()))
-        ).toList(),repository.findStayImages(stayId).stream().map(image -> new ImageView(Long.toString(image.id()),image.imageUrl(),image.sortOrder())).toList());
+        ).toList(),repository.findStayImages(stayId).stream().map(image -> new ImageView(Long.toString(image.id()),image.imageUrl(),image.sortOrder())).toList(), stay.categoryCode(), stay.categoryName(), stay.regionCode(), stay.regionName());
     }
 }

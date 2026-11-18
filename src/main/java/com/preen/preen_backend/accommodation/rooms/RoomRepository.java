@@ -11,14 +11,21 @@ public class RoomRepository {
     private final JdbcTemplate jdbc;
     public RoomRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    public record Stay(long id, String name, String description, String address, String checkInTime, String checkOutTime) {}
+    public record Stay(long id, String name, String description, String address, String checkInTime, String checkOutTime, String categoryCode, String categoryName, String regionCode, String regionName) {}
     public record Room(long id, String name, int capacity, int maxCapacity,
                        BigDecimal nightlyPrice, BigDecimal extraPersonFee, String roomType, BigDecimal areaSqm) {}
     public record Image(long id, long roomId, String imageUrl, int sortOrder) {}
 
     public Optional<Stay> findListedStay(long id) {
-        return jdbc.query("SELECT id, name, description, address, check_in_time, check_out_time FROM accommodations WHERE id = ? AND listing_status = 'LISTED'",
-            (rs, row) -> new Stay(rs.getLong("id"), rs.getString("name"), rs.getString("description"), rs.getString("address"), rs.getTime("check_in_time").toLocalTime().toString(), rs.getTime("check_out_time").toLocalTime().toString()), id).stream().findFirst();
+        return jdbc.query("""
+            SELECT a.id,a.name,a.description,a.address,a.check_in_time,a.check_out_time,
+                   c.code AS category_code,c.name AS category_name,g.code AS region_code,g.name AS region_name
+            FROM accommodations a
+            JOIN accommodation_categories c ON c.id=a.category_id
+            JOIN regions g ON g.id=a.region_id
+            WHERE a.id=? AND a.listing_status='LISTED'
+            """,
+            (rs, row) -> new Stay(rs.getLong("id"), rs.getString("name"), rs.getString("description"), rs.getString("address"), rs.getTime("check_in_time").toLocalTime().toString(), rs.getTime("check_out_time").toLocalTime().toString(), rs.getString("category_code"), rs.getString("category_name"), rs.getString("region_code"), rs.getString("region_name")), id).stream().findFirst();
     }
     public List<Image> findStayImages(long stayId) {
         return jdbc.query("""
