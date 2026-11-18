@@ -3,14 +3,13 @@ package com.preen.preen_backend.reservation.controller;
 import com.preen.preen_backend.common.auth.temporary.AuthUser;
 import com.preen.preen_backend.common.auth.temporary.CurrentUser;
 import com.preen.preen_backend.common.response.ApiResponse;
+import com.preen.preen_backend.common.response.PageResponse;
 import com.preen.preen_backend.reservation.dto.ReservationDtos.CreateRequest;
 import com.preen.preen_backend.reservation.dto.ReservationDtos.ReservationResponse;
 import com.preen.preen_backend.reservation.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -27,5 +26,20 @@ public class ReservationController {
                                                    @Valid @RequestBody CreateRequest request) {
         return ApiResponse.ok(reservationService.create(authUser.userId(), request));
     }
+
+    @GetMapping("/api/reservations/me")
+    public ApiResponse<PageResponse<ReservationResponse>> getMine(@CurrentUser AuthUser authUser,
+                                                                  @RequestParam(defaultValue = "0") int page,
+                                                                  @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(reservationService.getMine(authUser.userId(), page, size));
+    }
+
+
+    @GetMapping("/api/reservations/{id}")
+    public ApiResponse<ReservationResponse> getDetail(@CurrentUser AuthUser authUser,
+                                                      @PathVariable Long id) {
+        return ApiResponse.ok(reservationService.getDetail(authUser.userId(), id));
+    }
+
 
 }

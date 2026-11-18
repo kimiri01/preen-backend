@@ -3,10 +3,14 @@ package com.preen.preen_backend.reservation.service;
 
 import com.preen.preen_backend.accommodation.dto.RefundPolicyResponse;
 import com.preen.preen_backend.accommodation.dto.RoomInfo;
+import com.preen.preen_backend.common.response.PageResponse;
 import com.preen.preen_backend.inventory.service.InventoryService;
 import com.preen.preen_backend.reservation.domain.ReservationPriceItem;
 import com.preen.preen_backend.reservation.domain.ReservationPriceItem.ItemType;
 import com.preen.preen_backend.reservation.domain.ReservationStatusHistory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import tools.jackson.core.JacksonException; // JsonProcessingException 대신 사용
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -36,6 +40,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.preen.preen_backend.reservation.service.TempUserService.UserMeResponse;
 
 
@@ -121,7 +128,22 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
             return toResponse(reservation, items, room, null);
         }
 
+        // ---------- 조회 ----------
 
+        @Transactional(readOnly = true)
+        public PageResponse<ReservationResponse> getMine(Long userId, int page, int size) {
+            return toPage(reservationRepository.findByUserId(userId, pageable(page, size)));
+        }
+
+
+        /** 본인 예약만 볼 수 있다. 남의 예약은 없는 예약으로 응답한다. 환불 내역이 있으면 함께 준다. */
+        @Transactional(readOnly = true)
+        public ReservationResponse getDetail(Long userId, Long reservationId) {
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .filter(r -> r.getUserId().equals(userId))
+                    .orElseThrow(() -> new BaseException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+            return toResponse(reservation);
+        }
 
 //--------------------내부
 
@@ -152,6 +174,23 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
         }
 
 
+        private PageRequest pageable(int page, int size) {
+            return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
+                    Sort.by(Sort.Direction.DESC, "id"));
+        }
+
+        private PageResponse<ReservationResponse> toPage(Page<Reservation> page) {
+            List<Long> ids = page.getContent().stream().map(Reservation::getId).toList();
+            Map<Long, List<ReservationPriceItem>> items = ids.isEmpty() ? Map.of()
+                    : priceItemRepository.findByReservationIdInOrderByIdAsc(ids).stream()
+                    .collect(Collectors.groupingBy(ReservationPriceItem::getReservationId));
+            Map<Long, RefundInfo> refunds = refundInfoProvider.findByReservationIds(ids);
+            return PageResponse.of(page, r -> toResponse(r, items.getOrDefault(r.getId(), List.of()),
+                    accommodationQueryService.getRoomInfo(r.getRoomId()), refunds.get(r.getId())));
+        }
+
+
+
         private ReservationResponse toResponse(Reservation reservation) {
             return toResponse(reservation,
                     priceItemRepository.findByReservationIdInOrderByIdAsc(List.of(reservation.getId())),
@@ -175,4 +214,7 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
                             .toList(),
                     policy, refund);
         }
+
+
+
     }
