@@ -16,6 +16,10 @@ public class Region {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** [kny] 프론트 메인 화면 지역 버튼과 연결하는 고정 코드 (예: SEOUL). 없으면 null. V101에서 추가 */
+    @Column(length = 30)
+    private String code;
+
     private Long parentId;
 
     @Column(nullable = false, length = 50)

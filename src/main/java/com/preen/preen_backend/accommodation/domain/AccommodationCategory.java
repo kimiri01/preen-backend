@@ -16,6 +16,10 @@ public class AccommodationCategory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** [kny] 프론트 메인 화면 버튼과 연결하는 고정 코드 (예: HOTEL). 없으면 null. V101에서 추가 */
+    @Column(length = 30)
+    private String code;
+
     @Column(nullable = false, length = 50)
     private String name;
 

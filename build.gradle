@@ -22,6 +22,10 @@ dependencies {
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	// 회원가입·로그인(auth): 비밀번호 암호화, API 접근 권한, 인증 메일 발송
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.flywaydb:flyway-mysql'
@@ -30,11 +34,23 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// 기본 테스트: DB가 필요한 'integration' 태그 테스트는 제외합니다.
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform { excludeTags 'integration' }
+}
+
+// 로컬 MySQL이 켜져 있을 때만 실행하는 회원가입 통합 테스트: ./gradlew integrationTest
+tasks.register('integrationTest', Test) {
+	description = 'Runs signup integration tests against the configured local MySQL database.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform { includeTags 'integration' }
+	shouldRunAfter tasks.named('test')
 }

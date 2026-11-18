@@ -21,6 +21,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.preen.preen_backend.accommodation.domain.Accommodation.ListingStatus;
+import com.preen.preen_backend.accommodation.domain.AccommodationCategory;
+import com.preen.preen_backend.accommodation.domain.AccommodationImage;
+import com.preen.preen_backend.accommodation.domain.Region;
+import com.preen.preen_backend.accommodation.dto.AccommodationSummaryResponse;
+import com.preen.preen_backend.accommodation.dto.CategoryResponse;
+import com.preen.preen_backend.accommodation.dto.RegionResponse;
+import com.preen.preen_backend.accommodation.repository.AccommodationImageRepository;
+import com.preen.preen_backend.accommodation.repository.AccommodationRepository;
+import com.preen.preen_backend.accommodation.repository.CategoryRepository;
+import com.preen.preen_backend.accommodation.repository.RegionRepository;
+import com.preen.preen_backend.accommodation.repository.RoomPriceRepository;
 import com.preen.preen_backend.common.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -45,6 +56,7 @@ public class AccommodationQueryService {
 	private final RoomRepository roomRepository;
 	private final RefundPolicyRepository refundPolicyRepository;
 	private final RefundPolicyRuleRepository refundPolicyRuleRepository;
+	private final RoomPriceRepository roomPriceRepository;
 
 	public List<CategoryResponse> getCategories() {
 		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
@@ -132,6 +144,10 @@ public class AccommodationQueryService {
 				.findAllByAccommodationIdInOrderBySortOrderAsc(ids).stream()
 				.collect(Collectors.toMap(AccommodationImage::getAccommodationId, AccommodationImage::getImageUrl,
 						(first, later) -> first));
+		// [kny] 카드의 "최저 1박 요금" = 판매 중(ACTIVE) 객실의 기본가 중 가장 낮은 값 (STAY-001)
+		Map<Long, Integer> minPrices = roomPriceRepository.findMinNightlyPrices(ids).stream()
+				.collect(Collectors.toMap(RoomPriceRepository.MinPrice::getAccommodationId,
+						price -> price.getMinNightlyPrice().intValue()));
 
 		Function<Accommodation, AccommodationSummaryResponse> mapper = a -> new AccommodationSummaryResponse(
 				a.getId(),
@@ -142,7 +158,7 @@ public class AccommodationQueryService {
 				a.getCategoryId(),
 				categoryNames.get(a.getCategoryId()),
 				thumbnails.get(a.getId()),
-				null); // 객실(요금) 정보가 domain2에 없어서 아직 null입니다.
+				minPrices.get(a.getId())); // 판매 중인 객실이 없으면 null
 		return accommodations.stream().map(mapper).toList();
 	}
 
