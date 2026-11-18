@@ -38,3 +38,11 @@ out/
 
 
 .env
+
+# Local credentials and private keys
+.env.*
+!.env.example
+/application-local.properties
+/application-moon.properties
+*.pem
+*.key
