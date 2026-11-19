@@ -84,4 +84,13 @@ class LoginReviewFlowTests {
             .andExpect(status().isUnauthorized());
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM reviews WHERE reservation_id=?",Integer.class,BOOKING));
     }
+    @Test void musicSearchRequiresLoginAndMissingProviderKeysAreReportedClearly() throws Exception {
+        mvc.perform(get("/api/spotify/tracks/search").param("q","test")).andExpect(status().isUnauthorized());
+        String token=login(OWNER);
+        mvc.perform(get("/api/spotify/tracks/search").param("q","test").header("Authorization","Bearer "+token))
+            .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("SPOTIFY_NOT_CONFIGURED"));
+        mvc.perform(get("/api/spotify/tracks/search").param("q"," ").header("Authorization","Bearer "+token))
+            .andExpect(status().isBadRequest());
+    }
+
 }
