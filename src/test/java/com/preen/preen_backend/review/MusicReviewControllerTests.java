@@ -32,4 +32,22 @@ class MusicReviewControllerTests {
             .andExpect(jsonPath("$.data.filteredTotal").value(1)).andExpect(jsonPath("$.data.reviews[0].rating").value(5))
             .andExpect(jsonPath("$.data.reviews[0].userId").doesNotExist());
     }
+    @Test void canonicalPageUsesTeamShapeAndValidatesSize() throws Exception {
+        for(String query:List.of("size=0","size=51","page=-1","rating=8","sort=unsafe"))
+            mvc.perform(get("/api/accommodations/7/reviews?"+query)).andExpect(status().isBadRequest());
+        verifyNoInteractions(reviews,stays);
+        when(stays.findListedStay(7)).thenReturn(Optional.of(new RoomRepository.Stay(7,"숙소",null,"주소","15:00","11:00","HOTEL","호텔","SEOUL","서울")));
+        when(reviews.count(7,5)).thenReturn(21L);
+        when(reviews.list(7,5,"latest",0,20)).thenReturn(List.of());
+        mvc.perform(get("/api/accommodations/7/reviews?rating=5"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.size").value(20))
+            .andExpect(jsonPath("$.data.totalElements").value(21)).andExpect(jsonPath("$.data.totalPages").value(2))
+            .andExpect(jsonPath("$.data.hasNext").value(true)).andExpect(jsonPath("$.data.content").isArray());
+        mvc.perform(get("/api/accommodations/7/reviews?rating=5&page=1&size=20"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+    @Test void missingStayDoesNotExposeTracks() throws Exception {
+        mvc.perform(get("/api/accommodations/99/tracks")).andExpect(status().isNotFound());
+        verifyNoInteractions(reviews);
+    }
 }

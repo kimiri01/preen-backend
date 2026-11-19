@@ -44,4 +44,22 @@ class MusicReviewRepositoryTests {
         jdbc.update("UPDATE accommodations SET listing_status='HIDDEN' WHERE id=-9101");
         assertEquals(0,repository.count(-9101,0));
     }
+    @Test void tracksDeduplicateAndIgnoreHiddenOrIncompleteReviews() {
+        var tracks=repository.tracks(-9101);
+        assertEquals(1,tracks.size());assertEquals(2,tracks.getFirst().reviewCount());
+        assertTrue(tracks.getFirst().latestCreatedAt().startsWith("2026-10-02"));
+        jdbc.update("UPDATE accommodations SET listing_status='HIDDEN' WHERE id=-9101");
+        assertTrue(repository.tracks(-9101).isEmpty());
+    }
+    @Test void tracksAreLimitedToFiftyMostRecentlyAttachedSongsAndPagesUseRequestedSize() {
+        for(int i=1;i<=51;i++) {
+            long id=-9400-i;
+            jdbc.update("INSERT INTO reservations(id,reservation_no,user_id,room_id,refund_policy_id,check_in,check_out,guest_count,guest_name,total_price,status,refund_policy_snapshot,hold_expires_at,created_at) VALUES(?,?,-9101,-9101,-9101,'2026-10-01','2026-10-02',2,'테스트',100000,'COMPLETED','{}',NOW(),NOW())",id,"track-limit-"+i);
+            jdbc.update("INSERT INTO reviews(id,reservation_id,accommodation_id,user_id,spotify_track_id,rating,status,created_at) VALUES(?,?,-9101,-9101,?,5,'VISIBLE',?)",id,id,String.format("%022d",i),java.time.LocalDateTime.of(2026,10,10,12,0).plusSeconds(i));
+        }
+        var tracks=repository.tracks(-9101);
+        assertEquals(50,tracks.size());assertEquals(String.format("%022d",51),tracks.getFirst().spotifyTrackId());
+        assertEquals(20,repository.list(-9101,5,"latest",0,20).size());
+        assertEquals(12,repository.list(-9101,5,"latest",2,20).size());
+    }
 }

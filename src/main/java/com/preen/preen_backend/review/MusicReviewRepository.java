@@ -23,15 +23,25 @@ public class MusicReviewRepository {
         return count == null ? 0 : count;
     }
     public List<Review> list(long id, int rating, String sort, int page) {
+        return list(id,rating,sort,page,10);
+    }
+    public List<Review> list(long id, int rating, String sort, int page, int size) {
         String order = switch (sort) {
             case "rating-desc" -> "v.rating DESC,v.created_at DESC,v.id DESC";
             case "rating-asc" -> "v.rating ASC,v.created_at DESC,v.id DESC";
             default -> "v.created_at DESC,v.id DESC";
         };
         return jdbc.query("SELECT v.id,r.name,v.spotify_track_id,v.rating,v.created_at,CONCAT(LEFT(TRIM(b.guest_name),1),'**') AS author_label,b.check_out " + FROM
-            + " AND (?=0 OR v.rating=?) ORDER BY " + order + " LIMIT 10 OFFSET ?",
+            + " AND (?=0 OR v.rating=?) ORDER BY " + order + " LIMIT ? OFFSET ?",
             (rs,row) -> new Review(Long.toString(rs.getLong("id")),rs.getString("name"),
                 rs.getString("spotify_track_id"),rs.getInt("rating"),rs.getTimestamp("created_at").toLocalDateTime().toString(),rs.getString("author_label"),rs.getDate("check_out").toLocalDate().toString(),null,null,null),
-            id,rating,rating,page*10);
+            id,rating,rating,size,(long)page*size);
+    }
+
+    public record Track(String spotifyTrackId, long reviewCount, String latestCreatedAt) {}
+    public List<Track> tracks(long id) {
+        return jdbc.query("SELECT v.spotify_track_id,COUNT(*) AS review_count,MAX(v.created_at) AS latest_created_at " + FROM
+            + " GROUP BY v.spotify_track_id ORDER BY MAX(v.created_at) DESC,v.spotify_track_id LIMIT 50",
+            (rs,row)->new Track(rs.getString("spotify_track_id"),rs.getLong("review_count"),rs.getTimestamp("latest_created_at").toLocalDateTime().toString()),id);
     }
 }

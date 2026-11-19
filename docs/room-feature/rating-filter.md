@@ -1,13 +1,13 @@
-# 별점 조회 계약 및 검증
+# REVIEW-003 표준 페이지·트랙 모음 — Moon
 
-GET /api/accommodations/{id}/music-reviews
-- rating: 0(전체) 또는 1~5. 범위 밖은400.
-- sort: latest, rating-desc, rating-asc. 허용 목록 외는400.
-- page: 0~10000, 페이지당10개.
-- data.total은 해당 숙소의 전체 공개 리뷰 수, filteredTotal은 선택 별점의 수.
-- 이용 완료 예약과 일치하는 사용자·숙소의 공개 리뷰만 반환.
-- 최신순·별점순은 ID까지 정렬해 순서를 안정적으로 유지.
+브랜치 feature/review-track-list_Moon. 기존 개인 기능 커밋8b1c70a 위에 리뷰 조회 보완만 포함합니다.
 
-이번 작업은 기존 조회 API를 재사용하며 DB 스키마나 데이터를 변경하지 않습니다.
-별점 없는 결과,5점 결과의 별점 일치, 낮은 별점순을 통합 테스트에서 추가 확인했습니다.
-선행 로컬 보완인 팀 카테고리·지역 응답도 별도 커밋으로 포함합니다.
+- GET /api/accommodations/{id}/reviews?rating=&sort=&page=&size=
+- 공통 PageResponse: content/page/size/totalElements/totalPages/hasNext. 기본20/최대50, page0부터.
+- GET /api/accommodations/{id}/tracks: 곡별 중복 제거, 최근 첨부순 최대50곡. spotifyTrackId/reviewCount/latestCreatedAt 반환.
+- 공개숙소·VISIBLE 리뷰·소유 관계가 일치하는 COMPLETED 예약만 반환. 작성자는 첫글자** 마스킹.
+- 기존 /music-reviews는 10개 및 total/filteredTotal/reviews 응답을 그대로 유지합니다.
+
+검증: 크기·페이지 경계/입력 거절, 숨김·미완료 제외, 곡 중복집계·최근순·50곡 제한을 테스트했습니다.
+DB 변경은 롤백합니다. 동일명의 프론트 브랜치가 표준페이지 API를 사용하며 신규 등록 시 리뷰·트랙 캐시를 갱신합니다.
+정식 로그인·Spotify 검색은 별도 연결 대기이며 팀 공통 PageResponse를 수정하지 않았습니다.
