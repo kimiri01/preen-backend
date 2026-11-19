@@ -1,13 +1,13 @@
 package com.preen.preen_backend.reservation.exception;
 
-import com.preen.preen_backend.common.ErrorCode;
+import com.preen.preen_backend.common.TempErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public enum ReservationErrorCode implements ErrorCode {
+public enum ReservationErrorCode implements TempErrorCode {
 
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION-001", "예약을 찾을 수 없습니다."),
     ADULT_ONLY(HttpStatus.FORBIDDEN, "RESERVATION-002", "예약은 성인만 할 수 있습니다."),

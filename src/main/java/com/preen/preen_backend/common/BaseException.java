@@ -2,24 +2,24 @@ package com.preen.preen_backend.common;
 
 public class BaseException extends RuntimeException {
 
-    private final ErrorCode errorCode;
+    private final TempErrorCode tempErrorCode;
 
-    public BaseException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+    public BaseException(TempErrorCode tempErrorCode) {
+        super(tempErrorCode.getMessage());
+        this.tempErrorCode = tempErrorCode;
     }
 
-    public BaseException(ErrorCode errorCode, String message) {
+    public BaseException(TempErrorCode tempErrorCode, String message) {
         super(message);
-        this.errorCode = errorCode;
+        this.tempErrorCode = tempErrorCode;
     }
 
-    public BaseException(ErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
-        this.errorCode = errorCode;
+    public BaseException(TempErrorCode tempErrorCode, Throwable cause) {
+        super(tempErrorCode.getMessage(), cause);
+        this.tempErrorCode = tempErrorCode;
     }
 
-    public ErrorCode getErrorCode() {
-        return errorCode;
+    public TempErrorCode getErrorCode() {
+        return tempErrorCode;
     }
 }

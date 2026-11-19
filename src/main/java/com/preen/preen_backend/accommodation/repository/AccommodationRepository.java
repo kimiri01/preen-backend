@@ -1,6 +1,7 @@
 package com.preen.preen_backend.accommodation.repository;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,14 @@ import com.preen.preen_backend.accommodation.domain.Accommodation;
 import com.preen.preen_backend.accommodation.domain.Accommodation.ListingStatus;
 
 public interface AccommodationRepository extends JpaRepository<Accommodation, Long> {
+
+
+
+	List<Accommodation> findByHostBusinessIdOrderByIdDesc(Long hostBusinessId);
+
+
+
+
 
 	/**
 	 * 숙소 목록 조회. namePattern, categoryId, regionId, guestCount는 각각 null이면 조건을 적용하지 않습니다.

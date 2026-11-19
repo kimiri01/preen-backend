@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -161,6 +162,48 @@ public class AccommodationQueryService {
 				minPrices.get(a.getId())); // 판매 중인 객실이 없으면 null
 		return accommodations.stream().map(mapper).toList();
 	}
+
+
+	/** 호스트의 내 숙소 목록. 공개 상태와 관계없이 모두, 최근 등록순. */
+
+	public List<HostAccommodationSummary> getHostSummaries(Long hostBusinessId) {
+		List<Accommodation> accommodations =
+				accommodationRepository.findByHostBusinessIdOrderByIdDesc(hostBusinessId);
+		if (accommodations.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> ids = accommodations.stream().map(Accommodation::getId).toList();
+		Map<Long, AccommodationSummaryResponse> summaries = toSummaries(accommodations).stream()
+				.collect(Collectors.toMap(AccommodationSummaryResponse::id, Function.identity()));
+		Map<Long, List<Room>> roomsByAccommodation = roomRepository.findByAccommodationIdIn(ids).stream()
+				.collect(Collectors.groupingBy(Room::getAccommodationId));
+		Set<Long> withPolicy = refundPolicyRepository.findByAccommodationIdInAndActiveTrue(ids).stream()
+				.map(RefundPolicy::getAccommodationId)
+				.collect(Collectors.toSet());
+
+		return accommodations.stream()
+				.map(a -> toHostSummary(
+						a,
+						summaries.get(a.getId()),
+						roomsByAccommodation.getOrDefault(a.getId(), List.of()),
+						withPolicy.contains(a.getId())))
+				.toList();
+	}
+
+	private HostAccommodationSummary toHostSummary(Accommodation a, AccommodationSummaryResponse r,
+												   List<Room> rooms, boolean hasPolicy) {
+		int activeRooms = (int) rooms.stream().filter(Room::isActive).count();
+		boolean publishable = activeRooms > 0 && hasPolicy;
+
+		return new HostAccommodationSummary(
+				a.getId(), a.getName(), a.getAddress(),
+				a.getRegionId(), r.regionName(),
+				a.getCategoryId(), r.categoryName(),
+				r.thumbnailUrl(), a.getListingStatus(),
+				rooms.size(), activeRooms, hasPolicy, publishable);
+	}
+
 
 
 

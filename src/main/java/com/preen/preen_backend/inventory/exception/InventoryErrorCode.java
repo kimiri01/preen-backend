@@ -1,13 +1,13 @@
 package com.preen.preen_backend.inventory.exception;
 
-import com.preen.preen_backend.common.ErrorCode;
+import com.preen.preen_backend.common.TempErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public enum InventoryErrorCode implements ErrorCode {
+public enum InventoryErrorCode implements TempErrorCode {
 
     SOLD_OUT(HttpStatus.CONFLICT, "INVENTORY-001", "선택한 날짜에 예약 가능한 객실이 없습니다."),
     INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "INVENTORY-002", "날짜 범위가 올바르지 않습니다."),

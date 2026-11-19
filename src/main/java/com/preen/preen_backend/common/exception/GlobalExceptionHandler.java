@@ -1,5 +1,6 @@
 package com.preen.preen_backend.common.exception;
 
+import com.preen.preen_backend.common.TempErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -24,7 +25,7 @@ public class GlobalExceptionHandler {
     // yunjeong 26/11/18 추가 ----- 예약·재고 등 기능별 예외(BaseException)의 HTTP 상태, 코드와 메시지를 응답에 반영합니다.
     @ExceptionHandler(com.preen.preen_backend.common.BaseException.class)
     ResponseEntity<ApiResponse<Void>> base(com.preen.preen_backend.common.BaseException exception) {
-        com.preen.preen_backend.common.ErrorCode code = exception.getErrorCode();
+        TempErrorCode code = exception.getErrorCode();
         return ResponseEntity.status(code.getStatus()).body(ApiResponse.failure(code.getCode(), code.getMessage()));
     }
 
