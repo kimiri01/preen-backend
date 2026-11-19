@@ -27,7 +27,7 @@ public class UserPersonalInfo {
 
     // 암호화 이메일과 조회용 해시를 회원 개인정보에 함께 기록합니다.
     public static UserPersonalInfo create(Long userId, String name, String encryptedEmail,
-            String emailHash, LocalDate birthDate) {
+                String emailHash, LocalDate birthDate) {
         UserPersonalInfo info = new UserPersonalInfo();
         info.userId = userId;
         info.name = name;
@@ -35,5 +35,11 @@ public class UserPersonalInfo {
         info.emailHash = emailHash;
         info.birthDate = birthDate;
         return info;
+    }
+
+    // 회원의 이름과 생년월일만 변경합니다.
+    public void updateProfile(String name, LocalDate birthDate) {
+        this.name = name.trim();
+        this.birthDate = birthDate;
     }
 }
