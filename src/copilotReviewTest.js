@@ -10,3 +10,9 @@ public class CopilotReviewTest {
         return total - total * discountRate;
     }
 }
+
+// src/test/copilotReviewTest.js
+export function getUser(id) {
+    const users = JSON.parse(localStorage.getItem("users"));
+    return users.find(u => u.id == id).name;
+}
