@@ -41,3 +41,6 @@ out/
 .env.*
 application-local.yml
 !.env.example
+
+# Local Spotify/API secrets
+application-local.properties
