@@ -75,4 +75,20 @@ class RoomRepositoryTests {
         jdbc.update("UPDATE accommodations SET listing_status='HIDDEN' WHERE id=-9001");
         assertTrue(repository.findAudio(-9001).isEmpty());
     }
+    @Test void readsActualStayAmenitiesCoordinatesAndOnlyActiveRefundPolicy() {
+        jdbc.update("UPDATE accommodations SET latitude=33.1234567,longitude=126.1234567 WHERE id=-9001");
+        jdbc.update("INSERT INTO amenities(id,name) VALUES(-9001,'숙소 공용 주차')");
+        jdbc.update("INSERT INTO accommodation_amenities(accommodation_id,amenity_id) VALUES(-9001,-9001)");
+        jdbc.update("INSERT INTO refund_policies(id,accommodation_id,version,policy_text,active) VALUES(-9102,-9001,'active-v1','실제 환불 안내',TRUE)");
+        jdbc.update("INSERT INTO refund_policy_rules(refund_policy_id,days_before,refund_rate) VALUES(-9102,7,1.00),(-9102,1,0.50)");
+        var result=service.list(-9001);
+        assertEquals("33.1234567",result.latitude());
+        assertEquals("126.1234567",result.longitude());
+        assertEquals(java.util.List.of("숙소 공용 주차"),result.amenities());
+        assertEquals("active-v1",result.refundPolicy().version());
+        assertEquals(7,result.refundPolicy().rules().getFirst().daysBefore());
+        assertEquals(0,result.refundPolicy().rules().getFirst().refundRate().compareTo(java.math.BigDecimal.ONE));
+        jdbc.update("UPDATE refund_policies SET active=FALSE WHERE id=-9102");
+        assertNull(service.list(-9001).refundPolicy());
+    }
 }

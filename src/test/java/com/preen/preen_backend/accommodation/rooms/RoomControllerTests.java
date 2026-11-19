@@ -22,7 +22,7 @@ class RoomControllerTests {
         mvc.perform(get("/api/accommodations/9/rooms")).andExpect(status().isNotFound());
     }
     @Test void existingStayCanHaveAnEmptyList() throws Exception {
-        when(service.list(7L)).thenReturn(new RoomService.RoomList("7", "테스트 숙소", "숙소 설명", "제주 주소", "15:00", "11:00", List.of(), List.of(), "POOL_VILLA", "풀빌라", "JEJU", "제주도"));
+        when(service.list(7L)).thenReturn(new RoomService.RoomList("7", "테스트 숙소", "숙소 설명", "제주 주소", "15:00", "11:00", List.of(), List.of(), "POOL_VILLA", "풀빌라", "JEJU", "제주도", null, null, List.of(), null));
         mvc.perform(get("/api/accommodations/7/rooms")).andExpect(status().isOk())
             .andExpect(jsonPath("$.data.accommodationId").value("7")).andExpect(jsonPath("$.data.rooms").isEmpty())
             .andExpect(jsonPath("$.data.address").value("제주 주소"))

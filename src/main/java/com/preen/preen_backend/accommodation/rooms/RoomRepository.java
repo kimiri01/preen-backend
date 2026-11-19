@@ -87,4 +87,28 @@ public class RoomRepository {
                 rs.getString("connection_guide"),rs.getTime("available_from").toLocalTime().toString(),
                 rs.getTime("available_until").toLocalTime().toString(),rs.getString("volume_guide"),rs.getString("spotify_track_id")),stayId);
     }
+
+    public record Coordinates(String latitude, String longitude) {}
+    public record RefundRule(int daysBefore, BigDecimal refundRate) {}
+    public record RefundPolicy(String id, String version, String policyText, List<RefundRule> rules) {}
+
+    public Coordinates findCoordinates(long stayId) {
+        return jdbc.queryForObject("SELECT latitude,longitude FROM accommodations WHERE id=?", (rs,row) -> {
+            BigDecimal latitude=rs.getBigDecimal("latitude"), longitude=rs.getBigDecimal("longitude");
+            return new Coordinates(latitude==null?null:latitude.toPlainString(),longitude==null?null:longitude.toPlainString());
+        },stayId);
+    }
+    public List<String> findStayAmenities(long stayId) {
+        return jdbc.query("SELECT m.name FROM amenities m JOIN accommodation_amenities l ON l.amenity_id=m.id WHERE l.accommodation_id=? ORDER BY m.id",
+            (rs,row)->rs.getString("name"),stayId);
+    }
+    public RefundPolicy findRefundPolicy(long stayId) {
+        var policies=jdbc.query("SELECT id,version,policy_text FROM refund_policies WHERE accommodation_id=? AND active=TRUE ORDER BY id DESC LIMIT 1",
+            (rs,row)->new RefundPolicy(rs.getString("id"),rs.getString("version"),rs.getString("policy_text"),List.of()),stayId);
+        if(policies.isEmpty()) return null;
+        var policy=policies.getFirst();
+        var rules=jdbc.query("SELECT days_before,refund_rate FROM refund_policy_rules WHERE refund_policy_id=? ORDER BY days_before DESC,id",
+            (rs,row)->new RefundRule(rs.getInt("days_before"),rs.getBigDecimal("refund_rate")),Long.parseLong(policy.id()));
+        return new RefundPolicy(policy.id(),policy.version(),policy.policyText(),rules);
+    }
 }
