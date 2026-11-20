@@ -9,6 +9,9 @@ public interface HostBusinessRepository extends JpaRepository<HostBusiness, Long
     Optional<HostBusiness> findFirstByHostUserIdOrderByIdAsc(Long hostUserId);
 
 
+    boolean existsByHostUserId(Long hostUserId);
+
+    boolean existsByBusinessRegistrationNo(String businessRegistrationNo);
 
 
 
