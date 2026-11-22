@@ -12,7 +12,8 @@ public class AuthSecurityRules implements SecurityRuleContributor {
     public String[] publicPostPaths() {
         return new String[] {
             "/api/auth/email/send", "/api/auth/email/verify", "/api/auth/signup",
-            "/api/auth/login", "/api/auth/refresh"
+            "/api/auth/login", "/api/auth/refresh",
+            "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"
         };
     }
 }

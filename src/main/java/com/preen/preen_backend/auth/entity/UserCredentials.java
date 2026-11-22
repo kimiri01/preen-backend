@@ -51,6 +51,12 @@ public class UserCredentials {
         this.lockedUntil = null;
     }
 
+    // 새 비밀번호의 해시와 변경 시각을 기록합니다.
+    public void changePassword(String passwordHash, Instant changedAt) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = changedAt;
+    }
+
     // 해시된 비밀번호로 신규 회원의 인증 정보를 생성합니다.
     public static UserCredentials create(Long userId, String passwordHash, Instant now) {
         return new UserCredentials(userId, passwordHash, now, (short) 0, null);

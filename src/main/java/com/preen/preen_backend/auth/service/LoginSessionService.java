@@ -4,6 +4,7 @@ import com.preen.preen_backend.auth.dto.CurrentMemberResponse;
 import com.preen.preen_backend.auth.entity.User;
 import com.preen.preen_backend.auth.entity.UserPersonalInfo;
 import com.preen.preen_backend.auth.exception.AuthErrorCode;
+import com.preen.preen_backend.auth.exception.LoginRejectedException;
 import com.preen.preen_backend.auth.repository.RedisLoginSessionRepository;
 import com.preen.preen_backend.auth.repository.RedisLoginSessionRepository.LoginSession;
 import com.preen.preen_backend.auth.repository.UserPersonalInfoRepository;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +41,8 @@ public class LoginSessionService {
     private final Clock clock;
 
     // 비밀번호가 맞으면 새 세션과 토큰을 만들고 기존 세션을 교체합니다.
+    // 세션을 저장할 때까지 회원 인증 정보의 잠금을 유지합니다.
+    @Transactional(noRollbackFor = LoginRejectedException.class)
     public SessionTokens login(String email, String password, boolean rememberMe) {
         User user = accounts.authenticate(email, password);
         String sessionId = UUID.randomUUID().toString();

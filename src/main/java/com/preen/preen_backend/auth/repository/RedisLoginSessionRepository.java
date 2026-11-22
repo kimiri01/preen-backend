@@ -102,6 +102,11 @@ public class RedisLoginSessionRepository implements CurrentSessionLookup {
         return Long.valueOf(1L).equals(result);
     }
 
+    // 비밀번호를 재설정한 회원의 현재 로그인 세션을 지운다.
+    public void deleteByUserId(long userId) {
+        redis.delete(KEY_PREFIX + userId);
+    }
+
     // 로그인에서 받은 정보를 묶는다. Refresh Token은 해시만 담는다.
     public record LoginSession(
             String sessionId,
