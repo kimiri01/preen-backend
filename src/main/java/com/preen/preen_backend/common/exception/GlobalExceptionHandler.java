@@ -3,6 +3,7 @@ package com.preen.preen_backend.common.exception;
 import com.preen.preen_backend.common.TempErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,10 +31,21 @@ public class GlobalExceptionHandler {
     }
 
     // 요청 본문 형식이나 입력 검증 오류를 400 응답으로 변환합니다.
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
+    @ExceptionHandler({ HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
     ResponseEntity<ApiResponse<Void>> invalidInput(Exception exception) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT));
+    }
+
+    // @Valid 검증 실패 시 메시지를 응답 데이터에 담아 전달합니다.
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<ApiResponse<Void>> validation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(FieldError::getDefaultMessage)
+                .orElse(CommonErrorCode.INVALID_INPUT.message());   // getter 이름은 실제 enum에 맞추세요
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT.name(), message));
     }
 
     // 서비스에서 던진 ResponseStatusException(예: 숙소 검색 조건 오류)도 공통 응답 형식으로 바꿉니다.

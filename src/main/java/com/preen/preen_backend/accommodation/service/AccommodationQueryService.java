@@ -2,10 +2,7 @@ package com.preen.preen_backend.accommodation.service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -34,7 +31,7 @@ import com.preen.preen_backend.accommodation.repository.CategoryRepository;
 import com.preen.preen_backend.accommodation.repository.RegionRepository;
 import com.preen.preen_backend.accommodation.repository.RoomPriceRepository;
 import com.preen.preen_backend.common.response.PageResponse;
-
+import com.preen.preen_backend.accommodation.dto.HostAccommodationDtos.*;
 import lombok.RequiredArgsConstructor;
 
 /** 카테고리·지역·숙소 "조회" 전용 서비스 */
@@ -54,7 +51,10 @@ public class AccommodationQueryService {
 	private final RegionRepository regionRepository;
 	private final AccommodationRepository accommodationRepository;
 	private final AccommodationImageRepository accommodationImageRepository;
+	private final AccommodationAmenityRepository accommodationAmenityRepository;
 	private final RoomRepository roomRepository;
+	private final RoomImageRepository roomImageRepository;
+	private final AmenityRepository amenityRepository;
 	private final RefundPolicyRepository refundPolicyRepository;
 	private final RefundPolicyRuleRepository refundPolicyRuleRepository;
 	private final RoomPriceRepository roomPriceRepository;
@@ -202,6 +202,56 @@ public class AccommodationQueryService {
 				a.getCategoryId(), r.categoryName(),
 				r.thumbnailUrl(), a.getListingStatus(),
 				rooms.size(), activeRooms, hasPolicy, publishable);
+	}
+
+
+
+	public HostAccommodationDetail toHostDetail(Accommodation accommodation, boolean activeRoomsOnly) {
+		Long id = accommodation.getId();
+		List<String> imageUrls = accommodationImageRepository.findByAccommodationIdOrderBySortOrderAsc(id)
+				.stream()
+				.map(AccommodationImage::getImageUrl)
+				.toList();
+
+		List<Long> amenityIds = accommodationAmenityRepository.findByAccommodationId(id)
+				.stream()
+				.map(AccommodationAmenity::getAmenityId).toList();
+		List<AmenityResponse> amenities = amenityRepository.findAllById(amenityIds)
+				.stream()
+				.sorted(Comparator.comparing(Amenity::getId))
+				.map(a -> new AmenityResponse(a.getId(), a.getName()))
+				.toList();
+		List<Room> rooms = roomRepository.findByAccommodationIdOrderByIdAsc(id)
+				.stream()
+				.filter(r -> !activeRoomsOnly || r.isActive() )
+				.toList();
+
+		Map<Long, List<String>> roomImages = rooms.isEmpty() ? Map.of()
+				: roomImageRepository.findByRoomIdInOrderBySortOrderAsc(
+						rooms.stream().map(Room::getId).toList())
+				.stream()
+				.collect(Collectors.groupingBy(RoomImage::getRoomId,
+						Collectors.mapping(RoomImage::getImageUrl, Collectors.toList())));
+		return new HostAccommodationDetail(
+
+				id, accommodation.getName(), accommodation.getDescription(), accommodation.getAddress(),
+				accommodation.getRegionId(),
+				regionRepository.findById(accommodation.getRegionId()).map(Region::getName).orElse(null),
+				accommodation.getCategoryId(),
+				categoryRepository.findById(accommodation.getCategoryId()).map(AccommodationCategory::getName)
+						.orElse(null),
+				accommodation.getLatitude(), accommodation.getLongitude(),
+				accommodation.getCheckInTime(), accommodation.getCheckOutTime(),
+				accommodation.getListingStatus(), imageUrls, amenities,
+				rooms.stream().map(r -> toRoomResponse(r, roomImages.getOrDefault(r.getId(), List.of()))).toList(),
+				getActiveRefundPolicy(id).orElse(null));
+
+	}
+
+
+	public RoomResponse toRoomResponse(Room room, List<String> imageUrls) {
+		return new RoomResponse(room.getId(), room.getName(), room.getCapacity(), room.getMaxCapacity(),
+				room.getExtraPersonFee(), room.getNightlyPrice(), room.getStatus(), imageUrls);
 	}
 
 

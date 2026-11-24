@@ -18,6 +18,8 @@ public class Room {
     /** ACTIVE: 판매 중, INACTIVE: 판매 중지 */
     public enum RoomStatus {
         ACTIVE,
+
+        //호스트가 일부러 판매 중지 시 INACTIVE로 둔다. 숙소 신규 생성 시에는 ACTIVE로 저장된다.
         INACTIVE
     }
 
