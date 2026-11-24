@@ -16,7 +16,6 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class RedisLoginSessionRepository implements CurrentSessionLookup {
 
-    // 회원 번호가 42라면 auth:session:42라는 이름으로 저장한다.
     private static final String KEY_PREFIX = "auth:session:";
 
     private static final Duration SESSION_LIFETIME = Duration.ofDays(14);
@@ -53,16 +52,12 @@ public class RedisLoginSessionRepository implements CurrentSessionLookup {
             return redis.call('DEL', KEYS[1])
             """, Long.class);
 
-    // Redis에 세션 저장, 조회, 교체, 삭제 명령을 보낸다.
     private final StringRedisTemplate redis;
 
     // 같은 회원 번호로 다시 저장하면 이전 로그인 정보를 덮어쓴다.
     public Instant save(long userId, LoginSession session) {
-        // 최초 로그인 시각에서 14일이 지나면 세션을 자동으로 지운다.
         Instant expiresAt = session.issuedAt().plus(SESSION_LIFETIME);
 
-        // 저장할 이름을 먼저 보내고, 그 뒤에 저장할 값 네 개를 보낸다.
-        // 로그인 시각과 만료 시각은 밀리초 단위 숫자를 문자열로 바꿔 보낸다.
         Long result = redis.execute(
                 SAVE_SESSION,
                 List.of(KEY_PREFIX + userId),
@@ -88,8 +83,7 @@ public class RedisLoginSessionRepository implements CurrentSessionLookup {
         return result != null && result > 0 ? Optional.of(Instant.ofEpochMilli(result)) : Optional.empty();
     }
 
-    // Redis에서 읽은 세션 ID가 요청의 세션 ID와 같을 때만 현재 세션으로 인정한다.
-    // Redis 연결 오류는 인증을 처리하는 쪽으로 전달한다.
+    // 요청한 세션이 회원의 현재 세션인지 확인한다.
     @Override
     public boolean isCurrentSession(long userId, String sessionId) {
         Object currentSessionId = redis.opsForHash().get(KEY_PREFIX + userId, "sessionId");
@@ -114,31 +108,3 @@ public class RedisLoginSessionRepository implements CurrentSessionLookup {
             Instant issuedAt) {
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

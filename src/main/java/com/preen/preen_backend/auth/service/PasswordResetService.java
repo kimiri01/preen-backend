@@ -45,11 +45,9 @@ public class PasswordResetService {
 
     @Transactional
     public void requestLink(String email) {
-        // 가입 여부를 조회하기 전에 같은 이메일로 들어오는 반복 요청을 제한합니다.
         String emailHash = hashes.hash(email);
         rateLimiter.check("password-reset-email:" + emailHash, REQUESTS_PER_EMAIL);
 
-        // 이메일 해시로 회원을 찾고, 비밀번호가 있는 활성 계정인지 확인합니다.
         var member = personalInfo.findByEmailHash(emailHash);
         if (member.isEmpty()) {
             return;
@@ -60,7 +58,6 @@ public class PasswordResetService {
             return;
         }
 
-        // 재설정 링크에 사용할 토큰을 만들고 DB에는 해시와 만료 시각을 저장합니다.
         String token = TokenUtil.randomToken();
         Instant expiresAt = clock.instant().plus(TOKEN_EXPIRATION);
         resetTokens.save(new PasswordResetToken(userId, hashes.hash(token), expiresAt));
@@ -73,7 +70,6 @@ public class PasswordResetService {
             throw invalidToken();
         }
 
-        // 메일로 받은 토큰을 해시해서 저장된 재설정 요청을 찾습니다.
         PasswordResetToken resetToken = resetTokens.findByTokenHash(hashes.hash(token))
                 .orElseThrow(PasswordResetService::invalidToken);
         Long userId = resetToken.getUserId();
@@ -85,14 +81,12 @@ public class PasswordResetService {
             throw invalidToken();
         }
 
-        // 가입 때 안내하는 비밀번호 조건을 확인한 뒤 해시로 저장합니다.
         if (newPassword == null || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
             throw new BusinessException(AuthErrorCode.PASSWORD_INVALID);
         }
         accountCredentials.changePassword(passwordEncoder.encode(newPassword), now);
         resetToken.markUsed(now);
 
-        // 세션 삭제에 실패하면 비밀번호 변경과 토큰 사용 기록도 취소합니다.
         try {
             sessions.deleteByUserId(userId);
         } catch (DataAccessException exception) {

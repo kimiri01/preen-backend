@@ -41,7 +41,6 @@ public class LoginSessionService {
     private final Clock clock;
 
     // 비밀번호가 맞으면 새 세션과 토큰을 만들고 기존 세션을 교체합니다.
-    // 세션을 저장할 때까지 회원 인증 정보의 잠금을 유지합니다.
     @Transactional(noRollbackFor = LoginRejectedException.class)
     public SessionTokens login(String email, String password, boolean rememberMe) {
         User user = accounts.authenticate(email, password);
@@ -73,7 +72,6 @@ public class LoginSessionService {
             throw invalidSession();
         }
         String sessionId = matcher.group(2);
-        // 쿠키 유형도 토큰 해시로 검증되므로 재발급해도 처음 선택이 유지됩니다.
         boolean rememberMe = !"s".equals(matcher.group(3));
         User user = activeUser(userId);
         String refreshToken = newRefreshToken(userId, sessionId, rememberMe);

@@ -10,10 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.preen.preen_backend.accommodation.domain.Room;
 
-/**
- * [kny] 숙소 카드의 "최저 1박 요금"을 구하는 조회 전용 저장소.
- * 팀원 파일(AccommodationRepository)을 고치지 않으려고 따로 만들었습니다.
- */
+/** 숙소 카드의 최저 1박 요금 조회 저장소 */
 public interface RoomPriceRepository extends JpaRepository<Room, Long> {
 
 	/** 숙소 하나의 최저 요금 (조회 결과 한 줄) */

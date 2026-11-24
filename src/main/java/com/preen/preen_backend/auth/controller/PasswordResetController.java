@@ -25,10 +25,8 @@ public class PasswordResetController {
     @PostMapping("/request")
     public ApiResponse<Void> requestLink(
             @Valid @RequestBody PasswordResetLinkRequest request, HttpServletRequest httpRequest) {
-        // 같은 IP에서 여러 이메일로 계속 요청하는 것을 제한합니다.
         rateLimiter.check("password-reset-ip:" + httpRequest.getRemoteAddr(), REQUESTS_PER_IP);
         passwordResetService.requestLink(request.email());
-        // 이메일의 가입 여부와 관계없이 같은 응답을 보냅니다.
         return ApiResponse.ok(null);
     }
 

@@ -35,14 +35,12 @@ public class EmailVerificationService {
         Instant now = clock.instant();
         codes.ensureTarget(targetHash, now);
         VerificationCode stored = codes.findForUpdate(targetHash).orElseThrow();
-        // 빈 해시는 최초 요청의 잠금용 행입니다.
         if (!stored.getCodeHash().isEmpty()) {
             Instant issuedAt = stored.getExpiresAt().minus(properties.codeExpiration());
             if (issuedAt.plus(properties.resendInterval()).isAfter(now)) {
                 throw new BusinessException(AuthErrorCode.RESEND_TOO_SOON);
             }
         }
-        // 인증번호는 해시로 저장하고 원문은 메일 발송에만 사용합니다.
         String code = TokenUtil.verificationCode();
         stored.issue(hashes.hash(targetHash + ":code:" + code), now.plus(properties.codeExpiration()));
         codes.saveAndFlush(stored);
@@ -76,7 +74,6 @@ public class EmailVerificationService {
                     ? AuthErrorCode.CODE_ATTEMPTS_EXCEEDED : AuthErrorCode.CODE_INVALID;
             throw new InvalidVerificationCodeException(error);
         }
-        // 인증 성공 후 로그인 JWT와 별개인 가입용 증명을 발급합니다.
         String token = TokenUtil.randomToken();
         Instant expiry = now.plus(properties.signupTokenExpiration());
         stored.verify(hashes.hash(targetHash + ":signup:" + token), now, expiry);

@@ -35,7 +35,6 @@ public class SignupService {
     // 인증 증명과 약관 버전을 확인하고 회원·비밀번호·동의 내역을 하나의 트랜잭션으로 저장합니다.
     @Transactional
     public SignupResponse signup(SignupRequest request) {
-        // 가입 입력값과 이메일 인증 증명의 유효성을 확인합니다.
         validate(request);
         String emailHash = hashes.hash(request.email());
         VerificationCode verification = codes.findForUpdate(emailHash)
@@ -50,7 +49,6 @@ public class SignupService {
             throw new BusinessException(AuthErrorCode.SIGNUP_PROOF_INVALID);
         }
 
-        // 현재 약관 버전과 필수 동의가 일치하는지 확인합니다.
         if (!SIGNUP_TERMS_VERSION.equals(request.termsVersion())) {
             throw new BusinessException(AuthErrorCode.TERMS_INVALID);
         }
@@ -63,7 +61,6 @@ public class SignupService {
                 !consent.containsKey(term.getType()) || term.isRequired() && !consent.get(term.getType()))) {
             throw new BusinessException(AuthErrorCode.TERMS_INVALID);
         }
-        // 회원·개인정보·비밀번호·동의 기록을 함께 저장합니다.
         User user = users.saveAndFlush(User.guest());
         try {
             personalInfo.saveAndFlush(UserPersonalInfo.create(user.getId(), request.name(),
@@ -74,7 +71,6 @@ public class SignupService {
         credentials.save(UserCredentials.create(user.getId(), passwordEncoder.encode(request.password()), clock.instant()));
         agreements.saveAll(currentTerms.stream().map(term -> UserTermAgreement.create(
                 user.getId(), term.getId(), consent.get(term.getType()), clock.instant())).toList());
-        // 가입에 사용한 증명을 제거해 같은 토큰의 재사용을 막습니다.
         verification.consumeSignupProof();
         return SignupResponse.of(user);
     }

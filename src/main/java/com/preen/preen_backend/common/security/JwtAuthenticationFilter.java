@@ -66,7 +66,6 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Redis에서 현재 세션임을 확인한 뒤에만 로그인 상태로 처리합니다.
         try {
             if (!sessions.isCurrentSession(userId, sessionId)) {
                 SecurityErrorCode.SESSION_INVALID.write(response, mapper);

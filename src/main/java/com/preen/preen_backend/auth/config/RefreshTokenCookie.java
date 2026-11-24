@@ -22,7 +22,6 @@ public class RefreshTokenCookie {
 
     // 재발급해도 처음 로그인에서 정한 만료 시각까지만 쿠키를 유지합니다.
     public ResponseCookie create(String token, Instant expiresAt, boolean rememberMe) {
-        // 체크하지 않으면 브라우저 세션 동안만 쿠키를 보관합니다.
         if (!rememberMe) return cookie(token, -1);
         long remaining = Math.max(0, Duration.between(clock.instant(), expiresAt).toSeconds());
         return cookie(token, remaining);
