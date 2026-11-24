@@ -5,7 +5,14 @@ import org.springframework.http.HttpStatus;
 
 // 이메일 인증과 회원가입에서 발생하는 오류를 정의합니다.
 public enum AuthErrorCode implements ErrorCode {
+    // 회원이나 자격 증명 정보를 찾지 못한 경우에도 같은 로그인 오류를 사용합니다.
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호를 확인해 주세요."),
+    ACCOUNT_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 잠겼어요. 잠금 해제 후 다시 시도해 주세요."),
+    SESSION_INVALID(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."),
+    SESSION_LOOKUP_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "로그인 상태를 확인할 수 없어요. 잠시 후 다시 시도해 주세요."),
+    ORIGIN_NOT_ALLOWED(HttpStatus.FORBIDDEN, "허용되지 않은 주소에서 보낸 요청입니다."),
     SIGNUP_PROOF_INVALID(HttpStatus.BAD_REQUEST, "이메일 인증이 유효하지 않습니다. 다시 인증해 주세요."),
+    PASSWORD_RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "재설정 링크가 유효하지 않거나 만료되었습니다. 새 링크를 요청해 주세요."),
     PASSWORD_INVALID(HttpStatus.BAD_REQUEST, "비밀번호 조건 또는 비밀번호 확인이 올바르지 않습니다."),
     AGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "만 14세 이상부터 가입할 수 있습니다."),
     TERMS_INVALID(HttpStatus.BAD_REQUEST, "약관 버전과 필수 동의 항목을 확인해 주세요."),

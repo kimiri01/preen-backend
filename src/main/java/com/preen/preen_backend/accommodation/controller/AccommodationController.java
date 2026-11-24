@@ -22,13 +22,7 @@ public class AccommodationController {
 
 	private final AccommodationQueryService accommodationQueryService;
 
-	/**
-	 * GET /api/accommodations?keyword=&categoryId=&regionId=&guestCount=&checkIn=&checkOut=&page=&size=
-	 * keyword, categoryId, regionId, guestCount, checkIn, checkOut은 모두 선택이고, 함께 쓰면 모두 만족하는 숙소만 나옵니다.
-	 * keyword는 숙소명 검색어(100자 이하), guestCount는 1 이상입니다.
-	 * checkIn과 checkOut은 함께 보내야 하며 형식은 yyyy-MM-dd입니다.
-	 * 날짜를 주면 그 기간에 예약 가능한 숙소만 나옵니다.
-	 */
+	/** 조건별 숙소 목록 검색 (GET /api/accommodations) */
 	@GetMapping
 	public ApiResponse<PageResponse<AccommodationSummaryResponse>> getAccommodations(
 			@RequestParam(name = "keyword", required = false) String keyword,

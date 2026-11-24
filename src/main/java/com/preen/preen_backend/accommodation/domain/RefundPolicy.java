@@ -5,10 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 숙소별 환불정책. 내용을 고치지 않고 새 버전을 만들어 active를 옮긴다.
- * 기존 예약이 과거 버전을 참조하기 때문이다.
- */
+/** 숙소별 환불정책 (수정 대신 새 버전을 만들어 관리) */
 @Entity
 @Table(name = "refund_policies")
 @Getter

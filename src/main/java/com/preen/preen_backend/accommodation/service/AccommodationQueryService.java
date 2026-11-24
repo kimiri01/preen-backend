@@ -62,12 +62,7 @@ public class AccommodationQueryService {
 				.toList();
 	}
 
-	/**
-	 * 공개(LISTED) 숙소를 최근 등록순으로 조회합니다.
-	 * keyword, categoryId, regionId, guestCount는 없으면(null) 해당 조건을 적용하지 않습니다.
-	 * keyword는 숙소명에 그 글자가 들어 있는 숙소만 찾습니다. (대소문자 구분 없음, 공백뿐이면 조건 없음)
-	 * guestCount는 최대 인원이 그 이상인 판매 중 객실이 있는 숙소만 찾습니다.
-	 */
+	/** 조건에 맞는 공개 숙소를 최근 등록순으로 조회합니다. */
 	public PageResponse<AccommodationSummaryResponse> getAccommodations(String keyword, Long categoryId,
 			Long regionId, Integer guestCount, LocalDate checkIn, LocalDate checkOut, int page, int size) {
 		if (keyword != null && keyword.length() > MAX_KEYWORD_LENGTH) {
@@ -77,7 +72,6 @@ public class AccommodationQueryService {
 		if (guestCount != null && guestCount < 1) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인원은 1명 이상이어야 합니다.");
 		}
-		// 잘못된 값이 와도 에러 대신 허용 범위로 보정합니다. (page 0 이상, size 1~50)
 		int safePage = Math.max(page, 0);
 		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 		Pageable pageable = PageRequest.of(safePage, safeSize,
@@ -107,10 +101,7 @@ public class AccommodationQueryService {
 				result.hasNext());
 	}
 
-	/**
-	 * 검색어를 "포함" LIKE 패턴으로 바꿉니다. 비어 있으면 null(조건 없음)입니다.
-	 * 검색어 안의 %, _는 글자 그대로 찾도록 '!'로 이스케이프합니다.
-	 */
+	/** 검색어를 숙소명 LIKE 패턴으로 바꿉니다. */
 	private static String toNamePattern(String keyword) {
 		if (keyword == null || keyword.isBlank()) {
 			return null;
@@ -119,10 +110,7 @@ public class AccommodationQueryService {
 		return "%" + escaped + "%";
 	}
 
-	/**
-	 * 숙소 목록에 카테고리명·지역명·대표 사진을 붙입니다.
-	 * 연관관계가 없으므로 id 묶음으로 한 번씩만 조회합니다. (N+1 방지)
-	 */
+	/** 숙소 목록에 카테고리명·지역명·대표 사진·최저 요금을 붙입니다. */
 	List<AccommodationSummaryResponse> toSummaries(List<Accommodation> accommodations) {
 		if (accommodations.isEmpty()) {
 			return List.of();
@@ -136,7 +124,6 @@ public class AccommodationQueryService {
 				.findAllByAccommodationIdInOrderBySortOrderAsc(ids).stream()
 				.collect(Collectors.toMap(AccommodationImage::getAccommodationId, AccommodationImage::getImageUrl,
 						(first, later) -> first));
-		// [kny] 카드의 "최저 1박 요금" = 판매 중(ACTIVE) 객실의 기본가 중 가장 낮은 값 (STAY-001)
 		Map<Long, Integer> minPrices = roomPriceRepository.findMinNightlyPrices(ids).stream()
 				.collect(Collectors.toMap(RoomPriceRepository.MinPrice::getAccommodationId,
 						price -> price.getMinNightlyPrice().intValue()));
@@ -150,7 +137,7 @@ public class AccommodationQueryService {
 				a.getCategoryId(),
 				categoryNames.get(a.getCategoryId()),
 				thumbnails.get(a.getId()),
-				minPrices.get(a.getId())); // 판매 중인 객실이 없으면 null
+				minPrices.get(a.getId()));
 		return accommodations.stream().map(mapper).toList();
 	}
 

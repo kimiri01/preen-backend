@@ -56,7 +56,6 @@ class SignupIntegrationTest {
     @Test
     void savesMemberEncryptedEmailPasswordAndAllAgreements() {
         var result = service.signup(request(token, LocalDate.of(1990, 1, 1), password));
-        // 저장 계층을 실제로 flush한 뒤 DB 값과 인증 증명 소비를 확인합니다.
         codes.flush();
         assertEquals("GUEST", jdbc.queryForObject("SELECT role FROM users WHERE id=?", String.class, result.userId()));
         assertEquals("ACTIVE", result.status());

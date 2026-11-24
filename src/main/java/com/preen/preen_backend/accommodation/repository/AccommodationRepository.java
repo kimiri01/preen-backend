@@ -13,15 +13,7 @@ import com.preen.preen_backend.accommodation.domain.Accommodation.ListingStatus;
 
 public interface AccommodationRepository extends JpaRepository<Accommodation, Long> {
 
-	/**
-	 * 숙소 목록 조회. namePattern, categoryId, regionId, guestCount는 각각 null이면 조건을 적용하지 않습니다.
-	 * namePattern은 숙소명에 대한 LIKE 패턴이고 이스케이프 문자는 '!'입니다. 대소문자는 구분하지 않습니다.
-	 * guestCount가 있으면 최대 인원이 guestCount 이상인 ACTIVE 객실이 최소 한 개 있는 숙소만 남깁니다.
-	 * dateFilter가 true이면 숙박 기간(checkIn ~ checkOut 전날)의 모든 날짜에
-	 * 판매 가능한 재고가 있는 ACTIVE 객실이 최소 한 개 있는 숙소만 남깁니다.
-	 * 인원과 날짜를 함께 쓰면 한 객실이 두 조건을 모두 만족해야 합니다.
-	 * nights는 숙박 일수(checkOut - checkIn)입니다.
-	 */
+	/** 검색 조건(숙소명·카테고리·지역·인원·날짜)으로 공개 숙소를 조회합니다. */
 	@Query("""
 			select a from Accommodation a
 			where a.listingStatus = :listingStatus

@@ -25,6 +25,11 @@ public class User extends BaseTimeEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    // 활성 상태이고 삭제되지 않은 계정만 인증에 사용합니다.
+    public boolean isActive() {
+        return "ACTIVE".equals(status) && deletedAt == null;
+    }
+
     // 일반 회원 권한과 활성 상태로 신규 회원을 생성합니다.
     public static User guest() {
         User user = new User();
