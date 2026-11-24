@@ -4,9 +4,13 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.preen.preen_backend.accommodation.domain.*;
+import com.preen.preen_backend.accommodation.dto.*;
+import com.preen.preen_backend.accommodation.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.preen.preen_backend.accommodation.domain.Accommodation;
 import com.preen.preen_backend.accommodation.domain.Accommodation.ListingStatus;
 import com.preen.preen_backend.accommodation.domain.AccommodationCategory;
 import com.preen.preen_backend.accommodation.domain.AccommodationImage;
@@ -41,13 +44,18 @@ public class AccommodationQueryService {
 
 	private static final int MAX_PAGE_SIZE = 50;
 	private static final int MAX_KEYWORD_LENGTH = 100;
-	/** 시·도 단계 지역 (domain2 Region.level) */
+	/**
+	 * 시·도 단계 지역 (domain2 Region.level)
+	 */
 	private static final int LEVEL_PROVINCE = 1;
 
 	private final CategoryRepository categoryRepository;
 	private final RegionRepository regionRepository;
 	private final AccommodationRepository accommodationRepository;
 	private final AccommodationImageRepository accommodationImageRepository;
+	private final RoomRepository roomRepository;
+	private final RefundPolicyRepository refundPolicyRepository;
+	private final RefundPolicyRuleRepository refundPolicyRuleRepository;
 	private final RoomPriceRepository roomPriceRepository;
 
 	public List<CategoryResponse> getCategories() {
@@ -64,7 +72,7 @@ public class AccommodationQueryService {
 
 	/** 조건에 맞는 공개 숙소를 최근 등록순으로 조회합니다. */
 	public PageResponse<AccommodationSummaryResponse> getAccommodations(String keyword, Long categoryId,
-			Long regionId, Integer guestCount, LocalDate checkIn, LocalDate checkOut, int page, int size) {
+																		Long regionId, Integer guestCount, LocalDate checkIn, LocalDate checkOut, int page, int size) {
 		if (keyword != null && keyword.length() > MAX_KEYWORD_LENGTH) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 					"검색어는 " + MAX_KEYWORD_LENGTH + "자 이하여야 합니다.");
@@ -141,4 +149,42 @@ public class AccommodationQueryService {
 		return accommodations.stream().map(mapper).toList();
 	}
 
+
+
+//=========================================
+// ---------- 다른 feature용 ----------
+
+	public RoomInfo getRoomInfo(Long roomId) {
+		Room room = roomRepository.findById(roomId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "객실을 찾을 수 없습니다."));
+
+		Accommodation accommodation = accommodationRepository.findById(room.getAccommodationId())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "숙소를 찾을 수 없습니다."));
+
+		return toRoomInfo(room, accommodation);
+	}
+
+
+	private RoomInfo toRoomInfo(Room room, Accommodation accommodation) {
+		return new RoomInfo(room.getId(), accommodation.getId(), accommodation.getName(), room.getName(),
+				room.getCapacity(), room.getMaxCapacity(), room.getExtraPersonFee(), room.getNightlyPrice(),
+				room.isActive() && accommodation.isListed());
+	}
+
+
+
+	/** 현재 적용 중인 환불정책과 규칙 (일수 내림차순). */
+	public Optional<RefundPolicyResponse> getActiveRefundPolicy(Long accommodationId) {
+		return refundPolicyRepository.findFirstByAccommodationIdAndActiveTrueOrderByIdDesc(accommodationId)
+				.map(this::toPolicyResponse);
+	}
+
+
+	public RefundPolicyResponse toPolicyResponse(RefundPolicy policy) {
+		List<RefundRule> rules = refundPolicyRuleRepository
+				.findByRefundPolicyIdOrderByDaysBeforeDesc(policy.getId()).stream()
+				.map(r -> new RefundRule(r.getDaysBefore(), r.getRefundRate()))
+				.toList();
+		return new RefundPolicyResponse(policy.getId(), policy.getVersion(), policy.getPolicyText(), rules);
+	}
 }

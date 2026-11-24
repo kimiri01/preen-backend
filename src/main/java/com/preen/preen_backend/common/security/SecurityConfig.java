@@ -4,7 +4,9 @@ import jakarta.servlet.DispatcherType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+
 import org.springframework.beans.factory.ObjectProvider;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,11 +16,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
@@ -30,8 +34,10 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
+
                                             List<SecurityRuleContributor> contributors, SecurityProperties properties,
                                             ObjectProvider<JwtDecoder> decoder, CurrentSessionLookup sessions, ObjectMapper mapper) throws Exception {
+
         String[] publicPostPaths = collect(contributors, SecurityRuleContributor::publicPostPaths);
         String[] publicGetPaths = collect(contributors, SecurityRuleContributor::publicGetPaths);
         RequestMatcher[] publicPosts = Arrays.stream(publicPostPaths)
@@ -51,12 +57,14 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", cors);
 
+
         return http
                 .cors(config -> config.configurationSource(source))
                 .csrf(config -> config.ignoringRequestMatchers(publicPosts)
                         .ignoringRequestMatchers(logoutPost, request -> SecurityContextHolder.getContext()
                                 .getAuthentication() instanceof UsernamePasswordAuthenticationToken token
                                 && token.isAuthenticated() && token.getPrincipal() instanceof AuthenticatedUser))
+
                 .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, CsrfFilter.class)
                 .authorizeHttpRequests(config -> config

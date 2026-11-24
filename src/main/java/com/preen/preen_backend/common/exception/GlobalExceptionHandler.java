@@ -21,6 +21,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(code.status()).body(ApiResponse.failure(code));
     }
 
+    // yunjeong 26/11/18 추가 ----- 예약·재고 등 기능별 예외(BaseException)의 HTTP 상태, 코드와 메시지를 응답에 반영합니다.
+    @ExceptionHandler(com.preen.preen_backend.common.BaseException.class)
+    ResponseEntity<ApiResponse<Void>> base(com.preen.preen_backend.common.BaseException exception) {
+        com.preen.preen_backend.common.ErrorCode code = exception.getErrorCode();
+        return ResponseEntity.status(code.getStatus()).body(ApiResponse.failure(code.getCode(), code.getMessage()));
+    }
+
     // 요청 본문 형식이나 입력 검증 오류를 400 응답으로 변환합니다.
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
