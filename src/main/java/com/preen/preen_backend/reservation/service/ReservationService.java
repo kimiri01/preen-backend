@@ -3,11 +3,13 @@ package com.preen.preen_backend.reservation.service;
 
 import com.preen.preen_backend.accommodation.dto.RefundPolicyResponse;
 import com.preen.preen_backend.accommodation.dto.RoomInfo;
+import com.preen.preen_backend.common.exception.BusinessException;
 import com.preen.preen_backend.common.response.PageResponse;
 import com.preen.preen_backend.inventory.service.InventoryService;
 import com.preen.preen_backend.reservation.domain.ReservationPriceItem;
 import com.preen.preen_backend.reservation.domain.ReservationPriceItem.ItemType;
 import com.preen.preen_backend.reservation.domain.ReservationStatusHistory;
+import com.preen.preen_backend.reservation.dto.ReservationDtos.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,10 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import com.preen.preen_backend.inventory.dto.InventoryDtos.NightPrice;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.CreateRequest;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.RefundInfo;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.ReservationResponse;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.PriceItemResponse;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -81,20 +79,20 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
             LocalDateTime now = LocalDateTime.now();
             LocalDate today = now.toLocalDate();
             if (!request.checkOut().isAfter(request.checkIn()) || request.checkIn().isBefore(today)) {
-                throw new BaseException(ReservationErrorCode.INVALID_DATES);
+                throw new BusinessException(ReservationErrorCode.INVALID_DATES);
             }
             if (!userService.isAdult(userId)) {
-                throw new BaseException(ReservationErrorCode.ADULT_ONLY);
+                throw new BusinessException(ReservationErrorCode.ADULT_ONLY);
             }
             RoomInfo room = accommodationQueryService.getRoomInfo(request.roomId());
             if (!room.sellable()) {
-                throw new BaseException(ReservationErrorCode.ROOM_NOT_AVAILABLE);
+                throw new BusinessException(ReservationErrorCode.ROOM_NOT_AVAILABLE);
             }
             if (request.guestCount() > room.maxCapacity()) {
-                throw new BaseException(ReservationErrorCode.GUEST_COUNT_EXCEEDED);
+                throw new BusinessException(ReservationErrorCode.GUEST_COUNT_EXCEEDED);
             }
             RefundPolicyResponse policy = accommodationQueryService.getActiveRefundPolicy(room.accommodationId())
-                    .orElseThrow(() -> new BaseException(ReservationErrorCode.ROOM_NOT_AVAILABLE));
+                    .orElseThrow(() -> new BusinessException(ReservationErrorCode.ROOM_NOT_AVAILABLE));
 
             UserMeResponse me = userService.getMe(userId);
             String guestName = request.guestName() != null ? request.guestName().trim() : me.name();
@@ -141,11 +139,32 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
         public ReservationResponse getDetail(Long userId, Long reservationId) {
             Reservation reservation = reservationRepository.findById(reservationId)
                     .filter(r -> r.getUserId().equals(userId))
-                    .orElseThrow(() -> new BaseException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
             return toResponse(reservation);
         }
 
-//--------------------내부
+
+
+        /** 호스트 본인 숙소의 예약 목록. 숙소·상태·체크인 기간으로 거른다. */
+        @Transactional(readOnly = true)
+        public PageResponse<HostReservationSummary> getForHost(Long hostUserId, HostReservationSearch search,
+                                                               int page, int size) {
+            if (search.from() != null && search.to() != null && search.from().isAfter(search.to())) {
+                throw new BusinessException(ReservationErrorCode.INVALID_SEARCH_RANGE);
+            }
+            List<Long> roomIds = accommodationQueryService.getRoomIdsOfHost(hostUserId, search.accommodationId());
+            if (roomIds.isEmpty()) {
+                return PageResponse.of(Page.<Reservation>empty(pageable(page, size)), r->null);
+            }
+
+            Page<Reservation> reservations = reservationRepository.searchForHost(
+                    roomIds, search.status(), search.from(), search.to(), pageable(page, size));
+            Map<Long, RoomInfo> rooms = accommodationQueryService.getRoomInfos(
+                    reservations.stream().map(Reservation::getRoomId).distinct().toList());
+            return PageResponse.of(reservations, r -> HostReservationSummary.of(r, rooms.get(r.getRoomId())));
+        }
+
+        //--------------------내부
 
 
         private void recordHistory(Long reservationId, Long changedBy, Status previous, Status next, String reason,

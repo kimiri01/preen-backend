@@ -54,8 +54,26 @@ public class Room {
     @Column(nullable = false, length = 20)
     private RoomStatus status;
 
+
     public static Room create(Long accommodationId, String name, int capacity, int maxCapacity,
                               BigDecimal extraPersonFee, BigDecimal nightlyPrice) {
+
+        return of(accommodationId, name, capacity, maxCapacity, extraPersonFee, nightlyPrice, RoomStatus.ACTIVE);
+
+    }
+
+    /** 등록 후 추가하는 객실. 판매 중지(INACTIVE)로 시작하고, 호스트가 직접 판매를 켠다. */
+    public static Room createInactive(Long accommodationId, String name, int capacity, int maxCapacity,
+                                      BigDecimal extraPersonFee, BigDecimal nightlyPrice) {
+        return of(accommodationId, name, capacity, maxCapacity, extraPersonFee, nightlyPrice, RoomStatus.INACTIVE);
+    }
+
+
+
+
+
+    private static Room of(Long accommodationId, String name, int capacity, int maxCapacity,
+                           BigDecimal extraPersonFee, BigDecimal nightlyPrice, RoomStatus status) {
         Room room = new Room();
         room.accommodationId = accommodationId;
         room.name = name;
@@ -63,7 +81,7 @@ public class Room {
         room.maxCapacity = maxCapacity;
         room.extraPersonFee = extraPersonFee;
         room.nightlyPrice = nightlyPrice;
-        room.status = RoomStatus.ACTIVE;
+        room.status = status;
         return room;
     }
 

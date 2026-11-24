@@ -4,18 +4,24 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.preen.preen_backend.accommodation.dto.RoomInfo;
+import com.preen.preen_backend.reservation.domain.Reservation;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.springframework.format.annotation.DateTimeFormat;
 import tools.jackson.databind.JsonNode;
 
 
 public class ReservationDtos {
 
 
-    /** guestName, guestPhone을 보내지 않으면 회원 정보의 이름과 전화번호를 쓴다. */
+    /**
+     * guestName, guestPhone을 보내지 않으면 회원 정보의 이름과 전화번호를 쓴다.
+     */
     public record CreateRequest(
             @NotNull(message = "객실을 선택해 주세요.") Long roomId,
             @NotNull(message = "체크인 날짜를 입력해 주세요.") LocalDate checkIn,
@@ -31,7 +37,16 @@ public class ReservationDtos {
     public record PriceItemResponse(String itemType, String name, BigDecimal amount) {
     }
 
-
+    /**
+     * 호스트 예약 목록 검색 조건. 모두 선택값이며, 보내지 않은 조건은 적용하지 않는다. from·to는 체크인 날짜 기준.
+     */
+    public record HostReservationSearch(
+            Long accommodationId,
+            Reservation.Status status,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+    }
 
     /**
      * 환불 내역.
@@ -75,4 +90,27 @@ public class ReservationDtos {
     ) {
     }
 
+    public record HostReservationSummary(
+            Long id,
+            String reservationNo,
+            Long accommodationId,
+            String accommodationName,
+            Long roomId,
+            String roomName,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int guestCount,
+            String guestName,
+            BigDecimal totalPrice,
+            String status,
+            LocalDateTime createdAt
+    ) {
+        public static HostReservationSummary of(Reservation r, RoomInfo room) {
+            return new HostReservationSummary(r.getId(), r.getReservationNo(), room.accommodationId(),
+                    room.accommodationName(), r.getRoomId(), room.roomName(), r.getCheckIn(), r.getCheckOut(),
+                    r.getGuestCount(), r.getGuestName(), r.getTotalPrice(), r.getStatus().name(), r.getCreatedAt());
+
+        }
+
+    }
 }

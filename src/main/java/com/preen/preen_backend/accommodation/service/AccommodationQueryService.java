@@ -8,7 +8,10 @@ import java.util.stream.Collectors;
 
 import com.preen.preen_backend.accommodation.domain.*;
 import com.preen.preen_backend.accommodation.dto.*;
+import com.preen.preen_backend.accommodation.exception.AccommodationErrorCode;
 import com.preen.preen_backend.accommodation.repository.*;
+import com.preen.preen_backend.common.exception.BusinessException;
+import com.preen.preen_backend.host.service.HostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -58,6 +61,7 @@ public class AccommodationQueryService {
 	private final RefundPolicyRepository refundPolicyRepository;
 	private final RefundPolicyRuleRepository refundPolicyRuleRepository;
 	private final RoomPriceRepository roomPriceRepository;
+	private final HostService hostService;
 
 	public List<CategoryResponse> getCategories() {
 		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
@@ -292,5 +296,64 @@ public class AccommodationQueryService {
 				.map(r -> new RefundRule(r.getDaysBefore(), r.getRefundRate()))
 				.toList();
 		return new RefundPolicyResponse(policy.getId(), policy.getVersion(), policy.getPolicyText(), rules);
+	}
+
+
+
+	/** 객실이 그 회원(호스트)의 것인지 검사한다. 아니면 예외. */
+	public void assertRoomOwner(Long roomId, Long userId) {
+		Room room = roomRepository.findById(roomId)
+				.orElseThrow(() -> new BusinessException(AccommodationErrorCode.ROOM_NOT_FOUND));
+		assertAccommodationOwner(room.getAccommodationId(), userId);
+	}
+
+	public void assertAccommodationOwner(Long accommodationId, Long userId) {
+		Accommodation accommodation = accommodationRepository.findById(accommodationId)
+				.orElseThrow(() -> new BusinessException(AccommodationErrorCode.ACCOMMODATION_NOT_FOUND));
+		if (!hostService.getBusinessOf(userId).businessId().equals(accommodation.getHostBusinessId())) {
+			throw new BusinessException(AccommodationErrorCode.NOT_OWNER);
+		}
+	}
+
+
+	/** 판매 중(ACTIVE)인 모든 객실. 재고 자동 생성 스케줄러가 쓴다. */
+	public List<RoomInfo> getAllActiveRooms() {
+		List<Room> rooms = roomRepository.findByStatus(Room.RoomStatus.ACTIVE);
+		Map<Long, Accommodation> accommodations = accommodationRepository
+				.findAllById(rooms.stream().map(Room::getAccommodationId).distinct().toList()).stream()
+				.collect(Collectors.toMap(Accommodation::getId, Function.identity()));
+		return rooms.stream()
+				.filter(r -> accommodations.containsKey(r.getAccommodationId()))
+				.map(r -> toRoomInfo(r, accommodations.get(r.getAccommodationId())))
+				.toList();
+	}
+
+	/**
+	 * 호스트의 객실 ID 목록. accommodationId를 주면 그 숙소의 객실만 돌려주고, 본인 숙소가 아니면 예외.
+	 */
+	public List<Long> getRoomIdsOfHost(Long userId, Long accommodationId) {
+		List<Long> accommodationIds;
+		if (accommodationId != null) {
+			assertAccommodationOwner(accommodationId, userId);        // 이미 있는 메서드
+			accommodationIds = List.of(accommodationId);
+		} else {
+			Long businessId = hostService.getBusinessOf(userId).businessId();
+			accommodationIds = accommodationRepository.findByHostBusinessIdOrderByIdDesc(businessId).stream()
+					.map(Accommodation::getId).toList();
+		}
+		if (accommodationIds.isEmpty()) {
+			return List.of();
+		}
+		return roomRepository.findByAccommodationIdIn(accommodationIds).stream()
+				.map(Room::getId).toList();
+	}
+
+	public Map<Long, RoomInfo> getRoomInfos(Collection<Long> roomIds) {
+		List<Room> rooms = roomRepository.findAllById(roomIds);
+		Map<Long, Accommodation> accommodations = accommodationRepository
+				.findAllById(rooms.stream().map(Room::getAccommodationId).distinct().toList()).stream()
+				.collect(Collectors.toMap(Accommodation::getId, Function.identity()));
+		return rooms.stream().collect(Collectors.toMap(Room::getId,
+				r -> toRoomInfo(r, accommodations.get(r.getAccommodationId()))));
 	}
 }

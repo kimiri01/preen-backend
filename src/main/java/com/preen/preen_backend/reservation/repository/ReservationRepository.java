@@ -27,7 +27,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     Page<Reservation> findByUserId(Long userId, Pageable pageable);
 
-    Page<Reservation> findByRoomIdIn(Collection<Long> roomIds, Pageable pageable);
 
     @Query("select r.id from Reservation r where r.status = :status and r.holdExpiresAt <= :now order by r.id")
     List<Long> findIdsByStatusAndHoldExpired(@Param("status") Reservation.Status status,
@@ -36,4 +35,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("select r.id from Reservation r where r.status = :status and r.checkOut < :today order by r.id")
     List<Long> findIdsByStatusAndCheckOutBefore(@Param("status") Reservation.Status status,
                                                 @Param("today") LocalDate today);
+
+    /** 호스트 예약 검색. null인 조건은 적용하지 않는다. from·to는 체크인 날짜 기준(양 끝 포함). */
+    @Query("""
+        select r from Reservation r
+        where r.roomId in :roomIds
+          and (:status is null or r.status = :status)
+          and (:from is null or r.checkIn >= :from)
+          and (:to is null or r.checkIn <= :to)
+        """)
+    Page<Reservation> searchForHost(@Param("roomIds") Collection<Long> roomIds,
+                                    @Param("status") Reservation.Status status,
+                                    @Param("from") LocalDate from,
+                                    @Param("to") LocalDate to,
+                                    Pageable pageable);
 }

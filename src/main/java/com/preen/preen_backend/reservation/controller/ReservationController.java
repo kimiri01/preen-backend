@@ -4,11 +4,11 @@ import com.preen.preen_backend.common.auth.temporary.AuthUser;
 import com.preen.preen_backend.common.auth.temporary.CurrentUser;
 import com.preen.preen_backend.common.response.ApiResponse;
 import com.preen.preen_backend.common.response.PageResponse;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.CreateRequest;
-import com.preen.preen_backend.reservation.dto.ReservationDtos.ReservationResponse;
+import com.preen.preen_backend.reservation.dto.ReservationDtos.*;
 import com.preen.preen_backend.reservation.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -39,6 +39,18 @@ public class ReservationController {
     public ApiResponse<ReservationResponse> getDetail(@CurrentUser AuthUser authUser,
                                                       @PathVariable Long id) {
         return ApiResponse.ok(reservationService.getDetail(authUser.userId(), id));
+    }
+
+
+    /** 호스트 본인 숙소의 예약 목록. HOST 전용. */
+    @GetMapping("/api/host/reservations")
+    //@ModelAttribute를 쓰면 쿼리 파라미터 이름이 record 필드 이름과 같을 때 자동으로 채워집니다.
+
+    public ApiResponse<PageResponse<HostReservationSummary>> getForHost(@CurrentUser AuthUser authUser,
+                                                                     @ModelAttribute HostReservationSearch search,
+                                                                     @RequestParam(defaultValue = "0") int page,
+                                                                     @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(reservationService.getForHost(authUser.userId(), search, page, size));
     }
 
 

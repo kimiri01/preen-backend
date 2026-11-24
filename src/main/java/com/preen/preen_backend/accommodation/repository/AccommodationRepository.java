@@ -1,11 +1,16 @@
 package com.preen.preen_backend.accommodation.repository;
 
+
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -61,4 +66,9 @@ public interface AccommodationRepository extends JpaRepository<Accommodation, Lo
 			@Param("nights") long nights,
 			Pageable pageable);
 
+
+	/** 상태를 바꾸기 전에 숙소 행을 잠근다. 공개 전환과 객실 판매 중지가 동시에 와도 한쪽씩 처리한다. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select a from Accommodation a where a.id = :id")
+	Optional<Accommodation> findByIdForUpdate(@Param("id") Long id);
 }

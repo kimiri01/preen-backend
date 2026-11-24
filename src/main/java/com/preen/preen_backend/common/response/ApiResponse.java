@@ -24,4 +24,8 @@ public record ApiResponse<T>(boolean success, String code, String message, T dat
 		return new ApiResponse<>(false, code, message, null);
 	}
 
+	public static <T> ApiResponse<T> failure(String code, String message, T data) {
+		return new ApiResponse<>(false, code, message, data);
+	}
+
 }

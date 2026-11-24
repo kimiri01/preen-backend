@@ -1,6 +1,7 @@
 package com.preen.preen_backend.common.exception;
 
 import com.preen.preen_backend.common.TempErrorCode;
+import com.preen.preen_backend.common.response.FieldErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -12,6 +13,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
 
 // 컨트롤러에서 발생한 업무·입력 오류를 공통 API 응답으로 변환합니다.
 @RestControllerAdvice
@@ -39,14 +42,20 @@ public class GlobalExceptionHandler {
 
     // @Valid 검증 실패 시 메시지를 응답 데이터에 담아 전달합니다.
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse<Void>> validation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(FieldError::getDefaultMessage)
-                .orElse(CommonErrorCode.INVALID_INPUT.message());   // getter 이름은 실제 enum에 맞추세요
+    ResponseEntity<ApiResponse<List<FieldErrorResponse>>> validation(MethodArgumentNotValidException e) {
+        List<FieldErrorResponse> errors = e.getBindingResult().getFieldErrors().stream()
+                //모든 오류를 목록으로
+                .map(fe -> new FieldErrorResponse(fe.getField(), messageOf(fe)))
+                .toList();
+        String message = errors.isEmpty()
+                ? CommonErrorCode.INVALID_INPUT.message()
+                //첫 번째는 메시지에도 저장한다.
+                : errors.get(0).message();
+
         return ResponseEntity.badRequest()
-                .body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT.name(), message));
+                .body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT.name(), message, errors));
     }
+
 
     // 서비스에서 던진 ResponseStatusException(예: 숙소 검색 조건 오류)도 공통 응답 형식으로 바꿉니다.
     @ExceptionHandler(ResponseStatusException.class)
@@ -55,5 +64,15 @@ public class GlobalExceptionHandler {
         String code = status == HttpStatus.BAD_REQUEST ? CommonErrorCode.INVALID_INPUT.name() : status.name();
         String message = exception.getReason() != null ? exception.getReason() : status.getReasonPhrase();
         return ResponseEntity.status(status).body(ApiResponse.failure(code, message));
+    }
+
+
+
+    /** 직접 쓴 검증 메시지는 그대로, 스프링이 만든 타입 변환 메시지는 숨긴다. */
+    private static String messageOf(FieldError error) {
+        if (error.isBindingFailure()) {
+            return CommonErrorCode.INVALID_INPUT.message();   // "입력값이 올바르지 않습니다."
+        }
+        return error.getDefaultMessage();
     }
 }

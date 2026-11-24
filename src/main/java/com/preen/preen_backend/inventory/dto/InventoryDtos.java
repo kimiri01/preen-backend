@@ -1,5 +1,6 @@
 package com.preen.preen_backend.inventory.dto;
 
+import com.preen.preen_backend.inventory.domain.RoomInventory;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -15,4 +16,32 @@ public final class InventoryDtos {
     /** 선점 결과의 하루치. 예약이 요금 항목을 계산할 때 쓴다. */
     public record NightPrice(LocalDate stayDate, BigDecimal price) {
     }
+
+
+    public record InventoryResponse(LocalDate stayDate
+            , int totalCount, int bookedCount, int heldCount, int remaining, BigDecimal price, boolean closed){
+        public static InventoryResponse from(RoomInventory inventory){
+            return new InventoryResponse(inventory.getStayDate(), inventory.getTotalCount(),
+                    inventory.getBookedCount(), inventory.getHeldCount(), inventory.remaining(),
+                    inventory.getPrice(), inventory.isClosed());
+        }
+    }
+
+
+
+    /**
+     * 기간별 수량, 가격, 판매 마감 설정. startDate부터 endDate까지(양 끝 포함) 같은 값으로 설정한다.
+     * 보내지 않은(null) 항목은 바꾸지 않는다. 재고가 없던 날짜는 새로 만든다.
+     */
+    public record SetInventoriesRequest(
+            @NotNull(message = "시작일을 입력해 주세요.") LocalDate startDate,
+            @NotNull(message = "종료일을 입력해 주세요.") LocalDate endDate,
+            @Min(value = 0, message = "수량은 0 이상이어야 합니다.")
+            @Max(value = 9999, message = "수량이 너무 큽니다.") Integer totalCount,
+            @DecimalMin(value = "0", inclusive = false, message = "가격은 0보다 커야 합니다.")
+            @Digits(integer = 10, fraction = 2) BigDecimal price,
+            Boolean closed
+    ) {
+    }
+
 }

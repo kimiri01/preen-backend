@@ -40,14 +40,57 @@ public final class HostAccommodationDtos {
     ) {
     }
 
+
+    /**
+     * 숙소 세부사항 수정. 보내지 않은(null) 항목은 바꾸지 않는다. imageUrls, amenityIds는 보내면 통째로 교체한다.
+     * 공개 상태는 여기서 바꾸지 않고 {link ListingStatusRequest}로 바꾼다.
+     */
+    public record AccommodationUpdateRequest(
+            Long regionId,
+            Long categoryId,
+            @Size(max = 100) @Pattern(regexp = BLANK_ONLY, message = "숙소 이름을 입력해 주세요.") String name,
+            @Size(max = 5000) String description,
+            @Size(max = 255) @Pattern(regexp = BLANK_ONLY, message = "주소를 입력해 주세요.") String address,
+            @DecimalMin("-90") @DecimalMax("90") BigDecimal latitude,
+            @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude,
+            LocalTime checkInTime,
+            LocalTime checkOutTime,
+            @Size(max = 20, message = "이미지는 20장까지 등록할 수 있습니다.")
+            List<@NotBlank @Size(max = 500) String> imageUrls,
+            List<@NotNull Long> amenityIds
+    ) {
+    }
+
+
+
+
     public record RoomCreateRequest(
             @NotBlank(message = "객실 이름을 입력해 주세요.") @Size(max = 100) String name,
-            @Min(1) int capacity,
-            @Min(1) int maxCapacity,
-            @NotNull @DecimalMin("0") BigDecimal extraPersonFee,
-            @NotNull @DecimalMin("0") BigDecimal nightlyPrice,
-            @Size(max = 20) List<@NotBlank @Size(max = 500) String> imageUrls
-    ) {}
+            @NotNull @Min(value = 1, message = "기준 인원은 1명 이상이어야 합니다.") Integer capacity,
+            @NotNull @Min(value = 1, message = "최대 인원은 1명 이상이어야 합니다.") Integer maxCapacity,
+            @NotNull @DecimalMin(value = "0", message = "추가 인원 요금은 0 이상이어야 합니다.")
+            @Digits(integer = 10, fraction = 2) BigDecimal extraPersonFee,
+            @NotNull @DecimalMin(value = "0", inclusive = false, message = "기본가는 0보다 커야 합니다.")
+            @Digits(integer = 10, fraction = 2) BigDecimal nightlyPrice,
+            @Size(max = 20, message = "이미지는 20장까지 등록할 수 있습니다.")
+            List<@NotBlank @Size(max = 500) String> imageUrls
+    ) {
+    }
+
+
+    /** 보내지 않은(null) 항목은 바꾸지 않는다. */
+    public record RoomUpdateRequest(
+            @Size(max = 100) @Pattern(regexp = BLANK_ONLY, message = "객실 이름을 입력해 주세요.") String name,
+            @Min(value = 1, message = "기준 인원은 1명 이상이어야 합니다.") Integer capacity,
+            @Min(value = 1, message = "최대 인원은 1명 이상이어야 합니다.") Integer maxCapacity,
+            @DecimalMin(value = "0", message = "추가 인원 요금은 0 이상이어야 합니다.")
+            @Digits(integer = 10, fraction = 2) BigDecimal extraPersonFee,
+            @DecimalMin(value = "0", inclusive = false, message = "기본가는 0보다 커야 합니다.")
+            @Digits(integer = 10, fraction = 2) BigDecimal nightlyPrice,
+            @Size(max = 20, message = "이미지는 20장까지 등록할 수 있습니다.")
+            List<@NotBlank @Size(max = 500) String> imageUrls
+    ) {
+    }
 
 
     /**
