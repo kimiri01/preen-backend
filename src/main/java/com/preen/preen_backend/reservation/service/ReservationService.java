@@ -136,13 +136,42 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
 
         /** 본인 예약만 볼 수 있다. 남의 예약은 없는 예약으로 응답한다. 환불 내역이 있으면 함께 준다. */
         @Transactional(readOnly = true)
-        public ReservationResponse getDetail(Long userId, Long reservationId) {
-            Reservation reservation = reservationRepository.findById(reservationId)
+        public ReservationResponse getDetail(Long userId, String reservationNo) {
+            Reservation reservation = reservationRepository.findByReservationNo(reservationNo)
                     .filter(r -> r.getUserId().equals(userId))
                     .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
             return toResponse(reservation);
         }
 
+
+        //--------------------호스트--------------
+        @Transactional(readOnly = true)
+        public HostReservationDetail getDetailForHost(Long hostUserId, String reservationNo){
+            Reservation r = reservationRepository.findByReservationNo(reservationNo)
+                    .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+
+            //남의 숙소 예약은 없는 예약으로 응답한다.
+            if(!accommodationQueryService.getRoomIdsOfHost(hostUserId, null).contains(r.getRoomId())){
+                throw new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND);
+            }
+            RoomInfo room = accommodationQueryService.getRoomInfo(r.getRoomId());
+            List<PriceItemResponse> items = priceItemRepository
+                    .findByReservationIdInOrderByIdAsc(List.of(r.getId()))
+                    .stream()
+                    .map(PriceItemResponse::of)
+                    .toList();
+            RefundInfo refund = refundInfoProvider.findByReservationIds(List.of(r.getId()))
+                    .get(r.getId());
+
+            return new HostReservationDetail(
+                    r.getReservationNo(),
+                    room.accommodationId(), room.accommodationName(),
+                    r.getRoomId(), room.roomName(),
+                    r.getCheckIn(), r.getCheckOut(), r.getGuestCount(), r.getGuestName(), r.getGuestPhone(),
+                    r.getTotalPrice(), r.getStatus().name(), r.getCancelledAt(), r.getCreatedAt(),
+                    items, refund);
+
+        }
 
 
         /** 호스트 본인 숙소의 예약 목록. 숙소·상태·체크인 기간으로 거른다. */
@@ -164,7 +193,7 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
             return PageResponse.of(reservations, r -> HostReservationSummary.of(r, rooms.get(r.getRoomId())));
         }
 
-        //--------------------내부
+        //--------------------내부-----------------
 
 
         private void recordHistory(Long reservationId, Long changedBy, Status previous, Status next, String reason,
@@ -225,7 +254,7 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
             } catch (JacksonException e) {
                 policy = null;
             }
-            return new ReservationResponse(r.getId(), r.getReservationNo(), room.accommodationId(),
+            return new ReservationResponse( r.getReservationNo(), room.accommodationId(),
                     room.accommodationName(), room.roomId(), room.roomName(), r.getCheckIn(), r.getCheckOut(),
                     r.getGuestCount(), r.getGuestName(), r.getGuestPhone(), r.getTotalPrice(), r.getStatus().name(),
                     r.getHoldExpiresAt(), r.getCancelledAt(), r.getCreatedAt(),

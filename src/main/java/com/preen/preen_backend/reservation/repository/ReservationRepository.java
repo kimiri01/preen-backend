@@ -25,6 +25,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("select r from Reservation r where r.id = :id")
     Optional<Reservation> findByIdForUpdate(@Param("id") Long id);
 
+    Optional<Reservation> findByReservationNo(String reservationNo);
+
     Page<Reservation> findByUserId(Long userId, Pageable pageable);
 
 

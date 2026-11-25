@@ -35,10 +35,10 @@ public class ReservationController {
     }
 
 
-    @GetMapping("/api/reservations/{id}")
+    @GetMapping("/api/reservations/{reservationNo}")
     public ApiResponse<ReservationResponse> getDetail(@CurrentUser AuthUser authUser,
-                                                      @PathVariable Long id) {
-        return ApiResponse.ok(reservationService.getDetail(authUser.userId(), id));
+                                                      @PathVariable String reservationNo) {
+        return ApiResponse.ok(reservationService.getDetail(authUser.userId(), reservationNo));
     }
 
 
@@ -51,6 +51,14 @@ public class ReservationController {
                                                                      @RequestParam(defaultValue = "0") int page,
                                                                      @RequestParam(defaultValue = "20") int size) {
         return ApiResponse.ok(reservationService.getForHost(authUser.userId(), search, page, size));
+    }
+
+
+    /** 호스트 본인 숙소의 예약 상세. HOST 전용. */
+    @GetMapping("/api/host/reservations/{reservationNo}")
+    public ApiResponse<HostReservationDetail> getDetailForHost(@CurrentUser AuthUser authUser,
+                                          @PathVariable String reservationNo){
+        return ApiResponse.ok(reservationService.getDetailForHost(authUser.userId(),reservationNo));
     }
 
 

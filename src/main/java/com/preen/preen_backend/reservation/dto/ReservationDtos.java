@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.preen.preen_backend.accommodation.dto.RoomInfo;
 import com.preen.preen_backend.reservation.domain.Reservation;
+import com.preen.preen_backend.reservation.domain.ReservationPriceItem;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -35,6 +36,11 @@ public class ReservationDtos {
 
 
     public record PriceItemResponse(String itemType, String name, BigDecimal amount) {
+        public static PriceItemResponse of(ReservationPriceItem item) {
+            return new PriceItemResponse(item.getItemType().name(),
+                    item.getName(), item.getAmount());
+
+        }
     }
 
     /**
@@ -68,7 +74,7 @@ public class ReservationDtos {
      *                      취소 요청의 응답에서는 환불 처리 전이라 null이므로 CancelResponse의 금액을 쓴다
      */
     public record ReservationResponse(
-            Long id,
+
             String reservationNo,
             Long accommodationId,
             String accommodationName,
@@ -91,7 +97,7 @@ public class ReservationDtos {
     }
 
     public record HostReservationSummary(
-            Long id,
+
             String reservationNo,
             Long accommodationId,
             String accommodationName,
@@ -106,11 +112,31 @@ public class ReservationDtos {
             LocalDateTime createdAt
     ) {
         public static HostReservationSummary of(Reservation r, RoomInfo room) {
-            return new HostReservationSummary(r.getId(), r.getReservationNo(), room.accommodationId(),
+            return new HostReservationSummary( r.getReservationNo(), room.accommodationId(),
                     room.accommodationName(), r.getRoomId(), room.roomName(), r.getCheckIn(), r.getCheckOut(),
                     r.getGuestCount(), r.getGuestName(), r.getTotalPrice(), r.getStatus().name(), r.getCreatedAt());
 
         }
 
     }
+
+
+    public record HostReservationDetail(
+            String reservationNo,
+            Long accommodationId,
+            String accommodationName,
+            Long roomId,
+            String roomName,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int guestCount,
+            String guestName,
+            String guestPhone,
+            BigDecimal totalPrice,
+            String status,
+            LocalDateTime cancelledAt,
+            LocalDateTime createdAt,
+            List<PriceItemResponse> priceItems,
+            RefundInfo refund
+    ){ }
 }
