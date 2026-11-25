@@ -1,7 +1,7 @@
 package com.preen.preen_backend.reservation.service;
 
 
-import com.preen.preen_backend.accommodation.dto.RefundPolicyResponse;
+import com.preen.preen_backend.accommodation.dto.RefundDtos.*;
 import com.preen.preen_backend.accommodation.dto.RoomInfo;
 import com.preen.preen_backend.common.exception.BusinessException;
 import com.preen.preen_backend.common.response.PageResponse;

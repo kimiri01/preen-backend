@@ -2,6 +2,7 @@ package com.preen.preen_backend.accommodation.service;
 
 
 import com.preen.preen_backend.accommodation.domain.*;
+import com.preen.preen_backend.accommodation.dto.RefundDtos.*;
 import com.preen.preen_backend.accommodation.exception.AccommodationErrorCode;
 import com.preen.preen_backend.accommodation.repository.*;
 import com.preen.preen_backend.common.BaseException;
@@ -81,6 +82,7 @@ public class HostAccommodationService {
         return queryService.toHostDetail(accommodation, false);
     }
 
+
     // ---------- 조회 ----------
 
     /**
@@ -140,6 +142,17 @@ public class HostAccommodationService {
                 .map(RoomImage::getImageUrl).toList();
         return queryService.toRoomResponse(room, imageUrls);
     }
+
+
+
+    //----------환불 정책------------------
+    /**
+     * 환불정책 설정. 기존 정책은 고치지 않고 비활성으로 돌린 뒤 새 버전을 만든다.
+     * 기존 예약이 과거 버전을 참조하기 때문이다.
+     */
+//    public RefundPolicyResponse putRefundPolicy(Long userId, Long accommodationId, RefundPolicyRequest request){
+//
+//    }
 
     // ---------- 내부 ----------
 

@@ -137,7 +137,7 @@ public final class HostAccommodationDtos {
             List<String> imageUrls,
             List<AmenityResponse> amenities,
             List<RoomResponse> rooms,
-            RefundPolicyResponse refundPolicy
+            RefundDtos.RefundPolicyResponse refundPolicy
     ) {
     }
 

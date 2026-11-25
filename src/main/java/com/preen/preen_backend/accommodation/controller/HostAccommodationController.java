@@ -1,6 +1,8 @@
 package com.preen.preen_backend.accommodation.controller;
 
 
+import com.preen.preen_backend.accommodation.domain.RefundPolicy;
+import com.preen.preen_backend.accommodation.dto.RefundDtos.*;
 import com.preen.preen_backend.accommodation.service.HostAccommodationService;
 import com.preen.preen_backend.common.auth.temporary.AuthUser;
 import com.preen.preen_backend.common.auth.temporary.CurrentUser;
@@ -11,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.preen.preen_backend.accommodation.dto.HostAccommodationDtos.*;
+import com.preen.preen_backend.accommodation.dto.RefundDtos.*;
 
 
 
@@ -68,6 +71,13 @@ public class HostAccommodationController {
                                                 @Valid @RequestBody RoomUpdateRequest request) {
         return ApiResponse.ok(hostAccommodationService.updateRoom(authUser.userId(), id, roomId, request));
     }
+
+//    @PutMapping("/{id}/refund-policy")
+//    public ApiResponse<RefundPolicyResponse> putRefundPolicy(@CurrentUser AuthUser authUser,
+//                                                             @PathVariable Long id,
+//                                                             @Valid @RequestBody RefundPolicyRequest request){
+//        return;// ApiResponse.ok(hostAccommodationService.putRefundPolicy(authUser.userId(), id, request));
+//    }
 
 
 
