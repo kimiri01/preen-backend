@@ -23,6 +23,7 @@ import com.preen.preen_backend.reservation.repository.ReservationPriceItemReposi
 import com.preen.preen_backend.reservation.repository.ReservationRepository;
 import com.preen.preen_backend.reservation.repository.ReservationStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,7 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
 
 
 
+    @Slf4j
     @Service
     @RequiredArgsConstructor
     public class ReservationService {
@@ -150,6 +152,42 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
                     .filter(r -> r.getUserId().equals(userId))
                     .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
             return toResponse(reservation);
+        }
+
+//--------------------만료
+
+        /**
+         * 결제 제한 시간(holdExpiresAt)이 지난 PENDING 예약을 취소하고 선점한 재고를 해제한다.
+         * 예약마다 별도 트랜잭션으로 처리해, 한 건이 실패해도 나머지는 계속 처리한다.
+         *
+         * @return 만료 처리한 예약 수
+         */
+        public int expireOverdue() {
+            LocalDateTime now = LocalDateTime.now();
+            int expired = 0;
+            for (Long id : reservationRepository.findIdsByStatusAndHoldExpired(Status.PENDING, now)) {
+                try {
+                    if (Boolean.TRUE.equals(transactionTemplate.execute(tx -> expire(id, now)))) {
+                        expired++;
+                    }
+                } catch (RuntimeException e) {
+                    log.error("예약 만료 처리 실패 reservationId={}", id, e);
+                }
+            }
+            return expired;
+        }
+
+        /** 행을 잠근 뒤 다시 확인한다. 그 사이 결제·취소로 상태가 바뀌었으면 건드리지 않는다. */
+        private boolean expire(Long reservationId, LocalDateTime now) {
+            Reservation reservation = reservationRepository.findByIdForUpdate(reservationId).orElse(null);
+            if (reservation == null || !reservation.isStatus(Status.PENDING)
+                    || reservation.getHoldExpiresAt().isAfter(now)) {
+                return false;
+            }
+            reservation.cancel(now);
+            inventoryService.release(reservationId);
+            recordHistory(reservationId, null, Status.PENDING, Status.CANCELLED, "결제 시간 만료", now);
+            return true;
         }
 
 //--------------------내부
