@@ -57,6 +57,7 @@ public class AccommodationQueryService {
 	private final RefundPolicyRepository refundPolicyRepository;
 	private final RefundPolicyRuleRepository refundPolicyRuleRepository;
 	private final RoomPriceRepository roomPriceRepository;
+	private final HostAccountRepository hostAccountRepository;
 
 	public List<CategoryResponse> getCategories() {
 		return categoryRepository.findAllByOrderBySortOrderAsc().stream()
@@ -164,6 +165,11 @@ public class AccommodationQueryService {
 		return toRoomInfo(room, accommodation);
 	}
 
+
+	/** 이 회원이 숙소 주인(숙소 사업자의 호스트)인지 */
+	public boolean isOwnedBy(Long accommodationId, Long userId) {
+		return hostAccountRepository.countOwnedBy(accommodationId, userId) > 0;
+	}
 
 	private RoomInfo toRoomInfo(Room room, Accommodation accommodation) {
 		return new RoomInfo(room.getId(), accommodation.getId(), accommodation.getName(), room.getName(),

@@ -29,4 +29,12 @@ public interface HostAccountRepository extends JpaRepository<Accommodation, Long
 			LIMIT 1
 			""", nativeQuery = true)
 	Optional<Long> findApprovedHostBusinessId(@Param("userId") Long userId);
+
+	/** 숙소의 사업자 주인이 이 회원이면 1, 아니면 0 (예약 시 본인 숙소 예약 차단용) */
+	@Query(value = """
+			SELECT COUNT(*) FROM accommodations a
+			JOIN host_businesses hb ON hb.id = a.host_business_id
+			WHERE a.id = :accommodationId AND hb.host_user_id = :userId
+			""", nativeQuery = true)
+	long countOwnedBy(@Param("accommodationId") Long accommodationId, @Param("userId") Long userId);
 }

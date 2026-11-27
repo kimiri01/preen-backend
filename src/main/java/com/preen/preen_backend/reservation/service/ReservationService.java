@@ -87,6 +87,9 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
                 throw new BusinessException(ReservationErrorCode.ADULT_ONLY);
             }
             RoomInfo room = accommodationQueryService.getRoomInfo(request.roomId());
+            if (accommodationQueryService.isOwnedBy(room.accommodationId(), userId)) {
+                throw new BusinessException(ReservationErrorCode.SELF_RESERVATION_NOT_ALLOWED);
+            }
             if (!room.sellable()) {
                 throw new BusinessException(ReservationErrorCode.ROOM_NOT_AVAILABLE);
             }
