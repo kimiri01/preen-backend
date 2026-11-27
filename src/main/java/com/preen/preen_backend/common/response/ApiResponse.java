@@ -20,4 +20,9 @@ public record ApiResponse<T>(boolean success, String code, String message, T dat
 		return new ApiResponse<>(false, code, message, null);
 	}
 
+	/** 오류 코드·메시지와 함께 상세 정보(예: 필드별 검증 오류)를 data에 담습니다. */
+	public static <T> ApiResponse<T> failure(ErrorCode errorCode, String message, T data) {
+		return new ApiResponse<>(false, errorCode.name(), message, data);
+	}
+
 }
