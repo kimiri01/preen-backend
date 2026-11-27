@@ -6,6 +6,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 import com.preen.preen_backend.common.response.ApiResponse;
+import com.preen.preen_backend.common.response.FieldErrorResponse;
+import java.util.List;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,8 +23,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(code.status()).body(ApiResponse.failure(code));
     }
 
-    // 요청 본문 형식이나 입력 검증 오류를 400 응답으로 변환합니다.
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
+    // @Valid 검증 실패: 필드별 오류를 data에, 첫 번째 필드 오류 문구를 message에 담아 400으로 응답합니다.
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<ApiResponse<List<FieldErrorResponse>>> invalidArgument(MethodArgumentNotValidException exception) {
+        List<FieldErrorResponse> errors = exception.getBindingResult().getFieldErrors().stream()
+                .map(error -> new FieldErrorResponse(error.getField(),
+                        error.getDefaultMessage() != null ? error.getDefaultMessage()
+                                : CommonErrorCode.INVALID_INPUT.message()))
+                .toList();
+        String message = errors.isEmpty() ? CommonErrorCode.INVALID_INPUT.message() : errors.get(0).message();
+        return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT, message, errors));
+    }
+
+    // 요청 본문 형식이나 파라미터 오류를 400 응답으로 변환합니다.
+    @ExceptionHandler({HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
     ResponseEntity<ApiResponse<Void>> invalidInput(Exception exception) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.INVALID_INPUT));
