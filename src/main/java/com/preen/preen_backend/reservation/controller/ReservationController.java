@@ -4,6 +4,7 @@ package com.preen.preen_backend.reservation.controller;
 import com.preen.preen_backend.common.response.ApiResponse;
 import com.preen.preen_backend.common.response.PageResponse;
 import com.preen.preen_backend.common.security.AuthenticatedUser;
+import com.preen.preen_backend.reservation.domain.Reservation.Status;
 import com.preen.preen_backend.reservation.dto.ReservationDtos.CreateRequest;
 import com.preen.preen_backend.reservation.dto.ReservationDtos.ReservationResponse;
 import com.preen.preen_backend.reservation.service.ReservationService;
@@ -30,9 +31,10 @@ public class ReservationController {
 
     @GetMapping("/api/reservations/me")
     public ApiResponse<PageResponse<ReservationResponse>> getMine(@AuthenticationPrincipal AuthenticatedUser authUser,
+                                                                  @RequestParam(required = false) Status status,
                                                                   @RequestParam(defaultValue = "0") int page,
                                                                   @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(reservationService.getMine(authUser.userId(), page, size));
+        return ApiResponse.ok(reservationService.getMine(authUser.userId(), status, page, size));
     }
 
 

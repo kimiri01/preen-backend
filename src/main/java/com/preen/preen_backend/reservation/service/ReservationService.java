@@ -130,9 +130,13 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
 
         // ---------- 조회 ----------
 
+        /** status가 없으면 전체, 있으면 그 상태만 거른 뒤 페이지를 나눈다. */
         @Transactional(readOnly = true)
-        public PageResponse<ReservationResponse> getMine(Long userId, int page, int size) {
-            return toPage(reservationRepository.findByUserId(userId, pageable(page, size)));
+        public PageResponse<ReservationResponse> getMine(Long userId, Status status, int page, int size) {
+            PageRequest pageable = pageable(page, size);
+            return toPage(status == null
+                    ? reservationRepository.findByUserId(userId, pageable)
+                    : reservationRepository.findByUserIdAndStatus(userId, status, pageable));
         }
 
 

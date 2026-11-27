@@ -27,6 +27,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     Page<Reservation> findByUserId(Long userId, Pageable pageable);
 
+    /** 상태로 먼저 거른 뒤 페이지를 나눈다. page·size·totalPages도 거른 결과 기준이다. */
+    Page<Reservation> findByUserIdAndStatus(Long userId, Reservation.Status status, Pageable pageable);
+
     Page<Reservation> findByRoomIdIn(Collection<Long> roomIds, Pageable pageable);
 
     @Query("select r.id from Reservation r where r.status = :status and r.holdExpiresAt <= :now order by r.id")
