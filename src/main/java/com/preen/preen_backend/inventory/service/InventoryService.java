@@ -1,7 +1,7 @@
 package com.preen.preen_backend.inventory.service;
 
 
-import com.preen.preen_backend.common.BaseException;
+import com.preen.preen_backend.common.exception.BusinessException;
 import com.preen.preen_backend.inventory.exception.InventoryErrorCode;
 import com.preen.preen_backend.inventory.repository.InventoryHoldRepository;
 import com.preen.preen_backend.inventory.repository.RoomInventoryRepository;
@@ -43,11 +43,11 @@ public class InventoryService {
         List<NightView> rows = inventoryRepository.findNights(roomId, checkIn, checkOut);
         if (rows.size() != nights) {
             // 재고 행이 없는 날짜가 있으면 판매하지 않는 날이다
-            throw new BaseException(InventoryErrorCode.SOLD_OUT);
+            throw new BusinessException(InventoryErrorCode.SOLD_OUT);
         }
         for (NightView row : rows) {
             if (inventoryRepository.tryHold(row.getId()) == 0) {
-                throw new BaseException(InventoryErrorCode.SOLD_OUT);
+                throw new BusinessException(InventoryErrorCode.SOLD_OUT);
             }
             holdRepository.save(InventoryHold.held(reservationId, row.getId(), expiresAt));
         }
@@ -88,11 +88,11 @@ public class InventoryService {
     /** 1박 이상, 최대 박수 이하인지 검사하고 박수를 돌려준다. */
     static long validateStay(LocalDate checkIn, LocalDate checkOut) {
         if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
-            throw new BaseException(InventoryErrorCode.INVALID_DATE_RANGE);
+            throw new BusinessException(InventoryErrorCode.INVALID_DATE_RANGE);
         }
         long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
         if (nights > MAX_NIGHTS) {
-            throw new BaseException(InventoryErrorCode.DATE_RANGE_TOO_LONG);
+            throw new BusinessException(InventoryErrorCode.DATE_RANGE_TOO_LONG);
         }
         return nights;
     }

@@ -14,7 +14,7 @@ import org.springframework.data.domain.Sort;
 import tools.jackson.core.JacksonException; // JsonProcessingException 대신 사용
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.preen.preen_backend.common.BaseException;
+import com.preen.preen_backend.common.exception.BusinessException;
 import com.preen.preen_backend.accommodation.service.AccommodationQueryService;
 import com.preen.preen_backend.reservation.domain.Reservation;
 import com.preen.preen_backend.reservation.domain.Reservation.Status;
@@ -81,20 +81,20 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
             LocalDateTime now = LocalDateTime.now();
             LocalDate today = now.toLocalDate();
             if (!request.checkOut().isAfter(request.checkIn()) || request.checkIn().isBefore(today)) {
-                throw new BaseException(ReservationErrorCode.INVALID_DATES);
+                throw new BusinessException(ReservationErrorCode.INVALID_DATES);
             }
             if (!userService.isAdult(userId)) {
-                throw new BaseException(ReservationErrorCode.ADULT_ONLY);
+                throw new BusinessException(ReservationErrorCode.ADULT_ONLY);
             }
             RoomInfo room = accommodationQueryService.getRoomInfo(request.roomId());
             if (!room.sellable()) {
-                throw new BaseException(ReservationErrorCode.ROOM_NOT_AVAILABLE);
+                throw new BusinessException(ReservationErrorCode.ROOM_NOT_AVAILABLE);
             }
             if (request.guestCount() > room.maxCapacity()) {
-                throw new BaseException(ReservationErrorCode.GUEST_COUNT_EXCEEDED);
+                throw new BusinessException(ReservationErrorCode.GUEST_COUNT_EXCEEDED);
             }
             RefundPolicyResponse policy = accommodationQueryService.getActiveRefundPolicy(room.accommodationId())
-                    .orElseThrow(() -> new BaseException(ReservationErrorCode.ROOM_NOT_AVAILABLE));
+                    .orElseThrow(() -> new BusinessException(ReservationErrorCode.ROOM_NOT_AVAILABLE));
 
             UserMeResponse me = userService.getMe(userId);
             String guestName = request.guestName() != null ? request.guestName().trim() : me.name();
@@ -141,7 +141,7 @@ import com.preen.preen_backend.reservation.service.TempUserService.UserMeRespons
         public ReservationResponse getDetail(Long userId, Long reservationId) {
             Reservation reservation = reservationRepository.findById(reservationId)
                     .filter(r -> r.getUserId().equals(userId))
-                    .orElseThrow(() -> new BaseException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
             return toResponse(reservation);
         }
 
